@@ -1175,8 +1175,6 @@ class TestFactoryGenerator(DefaultSiteTestCase):
     def test_pages_with_property_generator(self):
         """Test the pages_with_property_generator method."""
         mysite = self.get_site()
-        if mysite.mw_version < '1.21':
-            self.skipTest('requires v1.21+')
         for item in ('defaultsort', 'disambiguation', 'displaytitle',
                      'hiddencat', 'invalid_property'):
             if item in mysite.get_property_names():
@@ -1500,7 +1498,7 @@ class TestLogeventsFactoryGenerator(DefaultSiteTestCase,
         if len(newuser_logevents) == 0:
             raise unittest.SkipTest('No newuser logs found to test with.')
 
-    user = True
+    login = True
 
     def test_logevents_parse(self):
         """Test wrong logevents option."""

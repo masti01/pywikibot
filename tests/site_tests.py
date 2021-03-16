@@ -425,16 +425,16 @@ class TestSiteGenerators(DefaultSiteTestCase):
         """Test Site.pagetemplates."""
         tl_gen = self.site.pagetemplates(self.mainpage)
         expected_params = {
-            'titles': [self.mainpage.title()],
-            'prop': ['info', 'imageinfo', 'categoryinfo'],
+            'continue': [True],
             'inprop': ['protection'],
             'iilimit': ['max'],
-            'iiprop': ['timestamp', 'user', 'comment', 'url', 'size',
-                       'sha1', 'metadata'],
+            'iiprop': ['timestamp', 'user', 'comment', 'url', 'size', 'sha1',
+                       'metadata'],
+            'indexpageids': [True],
             'generator': ['templates'], 'action': ['query'],
-            'indexpageids': [True]}
-        if self.site.mw_version >= '1.21':
-            expected_params['continue'] = [True]
+            'prop': ['info', 'imageinfo', 'categoryinfo'],
+            'titles': [self.mainpage.title()],
+        }
 
         self.assertEqual(tl_gen.request._params, expected_params)
 
@@ -460,19 +460,19 @@ class TestSiteGenerators(DefaultSiteTestCase):
         links_gen = self.site.pagelinks(self.mainpage)
         gen_params = links_gen.request._params.copy()
         expected_params = {
-            'redirects': [False],
-            'prop': ['info', 'imageinfo', 'categoryinfo'],
+            'action': ['query'], 'indexpageids': [True],
+            'continue': [True],
             'inprop': ['protection'],
             'iilimit': ['max'],
             'iiprop': ['timestamp', 'user', 'comment', 'url', 'size',
                        'sha1', 'metadata'], 'generator': ['links'],
-            'action': ['query'], 'indexpageids': [True]}
+            'prop': ['info', 'imageinfo', 'categoryinfo'],
+            'redirects': [False],
+        }
         if 'pageids' in gen_params:
             expected_params['pageids'] = [str(self.mainpage.pageid)]
         else:
             expected_params['titles'] = [self.mainpage.title()]
-        if self.site.mw_version >= '1.21':
-            expected_params['continue'] = [True]
 
         self.assertEqual(gen_params, expected_params)
 
@@ -875,8 +875,6 @@ class TestSiteGenerators(DefaultSiteTestCase):
 
     def test_pages_with_property(self):
         """Test pages_with_property method."""
-        if self.site.mw_version < '1.21':
-            self.skipTest('requires v1.21+')
         mysite = self.get_site()
         pnames = mysite.get_property_names()
         for item in ('defaultsort', 'disambiguation', 'displaytitle',
@@ -1125,7 +1123,7 @@ class SiteUserTestCase(DefaultSiteTestCase):
 
     """Test site method using a user."""
 
-    user = True
+    login = True
 
     def test_methods(self):
         """Test user related methods."""
@@ -1381,7 +1379,7 @@ class TestUserRecentChanges(DefaultSiteTestCase):
 
     """Test recentchanges method requiring a user."""
 
-    user = True
+    login = True
 
     def test_patrolled(self):
         """Test the site.recentchanges() with patrolled boolean flags."""
@@ -1400,7 +1398,7 @@ class TestUserWatchedPages(DefaultSiteTestCase):
 
     """Test user watched pages."""
 
-    user = True
+    login = True
 
     def test_watched_pages(self):
         """Test the site.watched_pages() method."""
@@ -1445,8 +1443,7 @@ class SearchTestCase(DefaultSiteTestCase):
             for hit in mysite.search('another', namespaces='8|9|10', total=5):
                 self.assertIsInstance(hit, pywikibot.Page)
                 self.assertIn(hit.namespace(), [8, 9, 10])
-            for hit in mysite.search('wiki', namespaces=0, total=10,
-                                     get_redirects=True):
+            for hit in mysite.search('wiki', namespaces=0, total=10):
                 self.assertIsInstance(hit, pywikibot.Page)
                 self.assertEqual(hit.namespace(), 0)
         except pywikibot.data.api.APIError as e:
@@ -1461,7 +1458,7 @@ class SearchTestCase(DefaultSiteTestCase):
     def test_search_where_title(self):
         """Test site.search() method with 'where' parameter set to title."""
         search_gen = self.site.search(
-            'wiki', namespaces=0, total=10, get_redirects=True, where='title')
+            'wiki', namespaces=0, total=10, where='title')
         expected_params = {
             'prop': ['info', 'imageinfo', 'categoryinfo'],
             'inprop': ['protection'],
@@ -1492,7 +1489,7 @@ class TestUserContribsAsUser(DefaultSiteTestCase):
 
     """Test site method site.usercontribs() with bot user."""
 
-    user = True
+    login = True
 
     def test_basic(self):
         """Test the site.usercontribs() method."""
@@ -1618,7 +1615,7 @@ class TestAlldeletedrevisionsAsUser(DefaultSiteTestCase):
 
     """Test site method site.alldeletedrevisions() with bot user."""
 
-    user = True
+    login = True
 
     @classmethod
     def setUpClass(cls):
@@ -1805,7 +1802,7 @@ class SiteWatchlistRevsTestCase(DefaultSiteTestCase):
 
     """Test site method watchlist_revs()."""
 
-    user = True
+    login = True
 
     def test_watchlist_revs(self):
         """Test the site.watchlist_revs() method."""
@@ -2165,12 +2162,49 @@ class TestSiteSysopWrite(TestCase):
         revs = list(p.revisions())
         self.assertGreater(len(revs), 2)
 
+    def test_delete_oldimage(self):
+        """Test deleting and undeleting specific versions of files."""
+        site = self.get_site()
+        fp = pywikibot.FilePage(site, 'File:T276725.png')
+
+        # Verify state
+        gen = site.filearchive(start='T276725.png', end='T276725.pngg')
+        fileid = None
+
+        for filearchive in gen:
+            fileid = filearchive['id']
+            break
+
+        if fileid is not None:
+            site.undelete_file_versions(fp, 'pywikibot unit tests',
+                                        fileids=[fileid])
+
+        # Delete the older version of file
+        hist = fp.get_file_history()
+        ts = pywikibot.Timestamp(2021, 3, 8, 2, 38, 57)
+        oldimageid = hist[ts]['archivename']
+
+        site.deleteoldimage(fp, oldimageid, 'pywikibot unit tests')
+
+        # Undelete the older revision of file
+        gen = site.filearchive(start='T276725.png', end='T276725.pngg')
+        fileid = None
+
+        for filearchive in gen:
+            fileid = filearchive['id']
+            break
+
+        self.assertIsNotNone(fileid)
+
+        site.undelete_file_versions(fp, 'pywikibot unit tests',
+                                    fileids=[fileid])
+
 
 class TestUsernameInUsers(DefaultSiteTestCase):
 
     """Test that the user account can be found in users list."""
 
-    user = True
+    login = True
     cached = True
 
     def test_username_in_users(self):
@@ -2671,7 +2705,7 @@ class TestUploadEnabledSite(TestCase):
         }
     }
 
-    user = True
+    login = True
 
     def test_is_uploaddisabled(self, key):
         """Test is_uploaddisabled()."""
@@ -3435,7 +3469,7 @@ class TestLoginLogout(DefaultSiteTestCase):
 
     """Test for login and logout methods."""
 
-    user = True
+    login = True
 
     def test_login_logout(self):
         """Validate login and logout methods by toggling the state."""
@@ -3470,7 +3504,7 @@ class TestLoginLogout(DefaultSiteTestCase):
 class TestClearCookies(TestCase):
     """Test cookies are cleared after logout."""
 
-    user = True
+    login = True
 
     family = 'wikisource'
     code = 'zh'

@@ -593,10 +593,7 @@ class TestPageObject(DefaultSiteTestCase):
         mainpage = self.get_mainpage()
         image = pywikibot.FilePage(site, 'File:Jean-Léon Gérôme 003.jpg')
 
-        if site.mw_version < '1.20':
-            with self.assertRaises(NotImplementedError):
-                mainpage.page_image()
-        elif site.has_extension('PageImages'):
+        if site.has_extension('PageImages'):
             mainpage_image = mainpage.page_image()
             if mainpage_image is not None:
                 self.assertIsInstance(mainpage_image, pywikibot.FilePage)
@@ -739,7 +736,7 @@ class TestPageBotMayEdit(TestCase):
     code = 'test'
 
     cached = True
-    user = True
+    login = True
 
     def setUp(self):
         """Setup test."""
@@ -1012,7 +1009,7 @@ class TestPageUserAction(DefaultSiteTestCase):
 
     """Test page user actions."""
 
-    user = True
+    login = True
 
     def test_purge(self):
         """Test purging the mainpage."""
@@ -1240,7 +1237,7 @@ class TestPermalink(TestCase):
 class TestShortLink(TestCase):
     """Test that short link management is correct."""
 
-    user = True
+    login = True
 
     family = 'wikipedia'
     code = 'test'
