@@ -128,7 +128,7 @@ class Timestamp(datetime.datetime):
         @param sep: one-character separator, placed between the date and time
         @return: ISO8601 format string
         """
-        assert(len(sep) == 1)
+        assert len(sep) == 1
         return '%Y-%m-%d{0}%H:%M:%SZ'.format(sep)
 
     @classmethod
@@ -665,7 +665,7 @@ class WbQuantity(_WbRepresentation):
         """
         if isinstance(value, Decimal):
             return value
-        elif value is None:
+        if value is None:
             return None
         return Decimal(str(value))
 

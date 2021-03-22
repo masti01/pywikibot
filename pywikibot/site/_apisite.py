@@ -276,8 +276,7 @@ class APISite(
         # and kwargs here are actually in parameters mode.
         if 'expiry' in kwargs and kwargs['expiry'] is not None:
             return api.CachedRequest
-        else:
-            return api.Request
+        return api.Request
 
     def _request(self, **kwargs):
         """Create a request by forwarding all parameters directly."""
@@ -493,16 +492,6 @@ class APISite(
         if hasattr(self, '_userinfo'):
             del self._userinfo
 
-    @deprecated('userinfo property and userinfo deleter', since='20210110')
-    def getuserinfo(self, force: bool = False) -> dict:
-        """DEPRECATED. Retrieve userinfo from site.
-
-        @param force: force to retrieve userinfo ignoring cache
-        """
-        if force:
-            del self.userinfo
-        return self.userinfo
-
     @property
     def globaluserinfo(self):
         """Retrieve globaluserinfo from site and cache it.
@@ -532,11 +521,6 @@ class APISite(
             iso_ts = pywikibot.Timestamp.fromISOformat(ts)
             self._globaluserinfo['registration'] = iso_ts
         return self._globaluserinfo
-
-    @deprecated('globaluserinfo property', since='20210110')
-    def getglobaluserinfo(self):
-        """DEPRECATED. Retrieve globaluserinfo."""
-        return self.globaluserinfo
 
     @remove_last_args(['sysop'])
     def is_blocked(self):
@@ -847,8 +831,7 @@ class APISite(
 
         if word in self._magicwords:
             return self._magicwords[word]
-        else:
-            return [word]
+        return [word]
 
     @deprecated('expand_text', since='20150831', future_warning=True)
     def resolvemagicwords(self, wikitext):  # pragma: no cover
@@ -4576,8 +4559,7 @@ class APISite(
                                     ignore_all_warnings = True
                                     offset = data['offset']
                                     continue
-                                else:
-                                    return False
+                                return False
                             result = data
                             result.setdefault('offset', 0)
                             break
@@ -4982,9 +4964,8 @@ class APISite(
             return self._generator(
                 api.PageGenerator, type_arg='protectedtitles',
                 namespaces=namespaces, gptlevel=level, total=total)
-        else:
-            return self.allpages(namespace=namespaces[0], protect_level=level,
-                                 protect_type=type, total=total)
+        return self.allpages(namespace=namespaces[0], protect_level=level,
+                             protect_type=type, total=total)
 
     def get_property_names(self, force: bool = False):
         """
@@ -5035,14 +5016,13 @@ class APISite(
         def get_param(item):
             if isinstance(item, str):
                 return 'title', item
-            elif isinstance(item, pywikibot.Page):
+            if isinstance(item, pywikibot.Page):
                 return 'title', item.title()
-            elif isinstance(item, int):
+            if isinstance(item, int):
                 return 'rev', item
-            elif isinstance(item, pywikibot.page.Revision):
+            if isinstance(item, pywikibot.page.Revision):
                 return 'rev', item.revid
-            else:
-                return None
+            return None
 
         old = get_param(old)
         if not old:

@@ -1437,7 +1437,7 @@ class Subject(interwiki_graph.Subject):
                  StandardOption('give up', 'g')))
             if answer == 'g':
                 return None
-            elif answer != 'n':
+            if answer != 'n':
                 result[site] = answer[1]
 
         # Loop over the ones that have one solution, so are in principle
@@ -1469,9 +1469,9 @@ class Subject(interwiki_graph.Subject):
                 if answer == 'a':  # accept this one
                     result[site] = pages[0]
                     break
-                elif answer == 'g':  # give up
+                if answer == 'g':  # give up
                     return None
-                elif answer == 'r':  # reject
+                if answer == 'r':  # reject
                     # None acceptable
                     break
         return result
@@ -1767,7 +1767,7 @@ class Subject(interwiki_graph.Subject):
                 if answer == 'b':
                     pywikibot.bot.open_webbrowser(page)
                     return True
-                elif answer == 'a':
+                if answer == 'a':
                     # don't ask for the rest of this subject
                     self.conf.always = True
                     answer = 'y'

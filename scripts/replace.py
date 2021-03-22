@@ -353,8 +353,7 @@ class ReplacementListEntry(ReplacementBase):
         """Return this entry's edit summary or the fix's summary."""
         if self._edit_summary is None:
             return self.fix_set.edit_summary
-        else:
-            return self._edit_summary
+        return self._edit_summary
 
     @property
     def container(self):
@@ -597,7 +596,7 @@ class ReplaceRobot(SingleSiteBot, ExistingPageBot):
             if (replacement.container
                     and replacement.container.name in skipped_containers):
                 continue
-            elif page is not None and self.isTitleExcepted(
+            if page is not None and self.isTitleExcepted(
                     page.title(), replacement.exceptions):
                 if replacement.container:
                     pywikibot.output(

@@ -24,7 +24,7 @@ Usage:
 
 """
 #
-# (C) Pywikibot team, 2008-2020
+# (C) Pywikibot team, 2008-2021
 #
 # Distributed under the terms of the MIT license.
 #
@@ -168,8 +168,6 @@ class CategoryRedirectBot(SingleSiteBot):
                 pywikibot.output('Server error: retrying in 5 seconds...')
                 time.sleep(5)
                 continue
-            except KeyboardInterrupt:
-                raise
             except Exception:
                 return (None, None)
 
@@ -179,7 +177,7 @@ class CategoryRedirectBot(SingleSiteBot):
         deadline = today + timedelta(days=-self.opt.delay)
         if cat.editTime() is None:
             raise RuntimeError
-        return (deadline > cat.editTime())
+        return deadline > cat.editTime()
 
     def get_log_text(self):
         """Rotate log text and return the most recent text."""
