@@ -584,7 +584,7 @@ class WelcomeBot(SingleSiteBot):
                     return True
         return False
 
-    def reportBadAccount(self, name: str) -> None:  # should be renamed
+    def collect_bad_accounts(self, name: str) -> None:
         """Add bad account to queue."""
         if globalvar.confirm:
             answer = pywikibot.input_choice(
@@ -811,7 +811,7 @@ class WelcomeBot(SingleSiteBot):
             return
 
         if self.badNameFilter(user.username):
-            self.reportBadAccount(user.username)
+            self.collect_bad_accounts(user.username)
             return
 
         welcome_text = self.welcome_text
@@ -867,7 +867,7 @@ class WelcomeBot(SingleSiteBot):
         if hasattr(self, '_BAQueue'):
             self.show_status()
             pywikibot.output('Putting bad name to report page...')
-            self.reportBadAccount(None, final=True)
+            self.report_bad_account()
 
     @staticmethod
     def show_status(message=Msg.DEFAULT):
