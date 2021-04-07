@@ -338,9 +338,8 @@ import re
 import socket
 import sys
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from contextlib import suppress
-from itertools import chain
 from textwrap import fill
 
 import pywikibot
@@ -350,7 +349,7 @@ from pywikibot import titletranslate
 
 from pywikibot.bot import OptionHandler, ListOption, StandardOption
 from pywikibot.cosmetic_changes import moved_links
-from pywikibot.tools import first_upper
+from pywikibot.tools import first_upper, SizedKeyCollection
 from pywikibot.tools.formatter import color_format
 
 docuReplacements = {
@@ -542,7 +541,7 @@ class InterwikiBotConfig:
         return True
 
 
-class PageTree:
+class PageTree(SizedKeyCollection):
 
     """
     Structure to manipulate a set of pages.
@@ -564,49 +563,12 @@ class PageTree:
         list of pages to the user when he'll be asked to resolve
         conflicts.
 
-        @ivar tree: dictionary with Site as keys and list of page as values.
-            All pages found within Site are kept in self.tree[site].
+        @ivar data: dictionary with Site as keys and list of page as values.
+            All pages found within Site are kept in self.data[site].
 
-        @type tree: dict
+        @type data: defaultdict(list)
         """
-        self.tree = defaultdict(list)
-        self.size = 0
-
-    def filter(self, site):
-        """Iterate over pages that are in Site site."""
-        with suppress(KeyError):
-            yield from self.tree[site]
-
-    def __len__(self):
-        """Length of the object."""
-        return self.size
-
-    def add(self, page):
-        """Add a page to the tree."""
-        site = page.site
-        self.tree[site].append(page)
-        self.size += 1
-
-    def remove(self, page):
-        """Remove a page from the tree."""
-        with suppress(ValueError):
-            self.tree[page.site].remove(page)
-            self.size -= 1
-
-    def removeSite(self, site):
-        """Remove all pages from Site site."""
-        with suppress(KeyError):
-            self.size -= len(self.tree[site])
-            del self.tree[site]
-
-    def siteCounts(self):
-        """Yield (Site, number of pages in site) pairs."""
-        for site, d in self.tree.items():
-            yield site, len(d)
-
-    def __iter__(self):
-        """Iterate through all items of the tree."""
-        yield from chain.from_iterable(self.tree.values())
+        super().__init__('site')
 
 
 class Subject(interwiki_graph.Subject):
@@ -689,7 +651,7 @@ class Subject(interwiki_graph.Subject):
         # Mark the origin page as todo.
         self.todo = PageTree()
         if origin:
-            self.todo.add(origin)
+            self.todo.append(origin)
 
         # done is a list of all pages that have been analyzed and that
         # are known to belong to this subject.
@@ -782,7 +744,7 @@ class Subject(interwiki_graph.Subject):
 
         for link in links:
             page = pywikibot.Page(link)
-            self.todo.add(page)
+            self.todo.append(page)
             self.found_in[page] = [None]
             if keephintedsites:
                 self.hintedsites.add(page.site)
@@ -795,7 +757,7 @@ class Subject(interwiki_graph.Subject):
         * site is a site where we still have work to do on
         * count is the number of items in that Site that need work on
         """
-        return self.todo.siteCounts()
+        return self.todo.iter_values_len()
 
     def whatsNextPageBatch(self, site):
         """
@@ -815,19 +777,19 @@ class Subject(interwiki_graph.Subject):
         # Prepare a list of suitable pages
         result = []
         for page in self.todo.filter(site):
-            self.pending.add(page)
+            self.pending.append(page)
             result.append(page)
 
-        self.todo.removeSite(site)
+        self.todo.remove_key(site)
 
         # If there are any, return them. Otherwise, nothing is in progress.
         return result
 
     def makeForcedStop(self, counter):
         """End work on the page before the normal end."""
-        for site, count in self.todo.siteCounts():
+        for site, count in self.todo.iter_values_len():
             counter.minus(site, count)
-        self.todo = PageTree()
+        self.todo.clear()
         self.forcedStop = True
 
     def addIfNew(self, page, counter, linkingPage):
@@ -860,7 +822,7 @@ class Subject(interwiki_graph.Subject):
             return False
 
         self.found_in[page] = [linkingPage]
-        self.todo.add(page)
+        self.todo.append(page)
         counter.plus(page.site)
         return True
 
@@ -1134,7 +1096,7 @@ class Subject(interwiki_graph.Subject):
         # Loop over all the pages that should have been taken care of
         for page in self.pending:
             # Mark the page as done
-            self.done.add(page)
+            self.done.append(page)
 
             # make sure that none of the linked items is an auto item
             if self.conf.skipauto:
@@ -1163,12 +1125,12 @@ class Subject(interwiki_graph.Subject):
                 if page == self.origin:
                     # The page we are working on is the page that does not
                     # exist. No use in doing any work on it in that case.
-                    for site, count in self.todo.siteCounts():
+                    for site, count in self.todo.iter_values_len():
                         counter.minus(site, count)
-                    self.todo = PageTree()
+                    self.todo.clear()
                     # In some rare cases it might be we already did check some
                     # 'automatic' links
-                    self.done = PageTree()
+                    self.done.clear()
                 continue
 
             if page.isRedirectPage() or page.isCategoryRedirect():
@@ -1189,15 +1151,15 @@ class Subject(interwiki_graph.Subject):
                         if not redirectTargetPage.isRedirectPage() \
                            and not redirectTargetPage.isCategoryRedirect():
                             self.origin = redirectTargetPage
-                            self.todo.add(redirectTargetPage)
+                            self.todo.append(redirectTargetPage)
                             counter.plus(redirectTargetPage.site)
                     else:
                         # This is a redirect page to the origin. We don't need
                         # to follow the redirection.
                         # In this case we can also stop all hints!
-                        for site, count in self.todo.siteCounts():
+                        for site, count in self.todo.iter_values_len():
                             counter.minus(site, count)
-                        self.todo = PageTree()
+                        self.todo.clear()
                 elif not self.conf.followredirect:
                     self.conf.note('not following {}redirects.'.format(redir))
                 elif page.isStaticRedirect():
@@ -1220,10 +1182,10 @@ class Subject(interwiki_graph.Subject):
                 self.conf.remove.append(str(page))
                 self.conf.note('{} is empty. Skipping.'.format(page))
                 if page == self.origin:
-                    for site, count in self.todo.siteCounts():
+                    for site, count in self.todo.iter_values_len():
                         counter.minus(site, count)
-                    self.todo = PageTree()
-                    self.done = PageTree()
+                    self.todo.clear()
+                    self.done.clear()
                     self.origin = None
                 continue
 
@@ -1339,7 +1301,7 @@ class Subject(interwiki_graph.Subject):
                     break
 
         # These pages are no longer 'in progress'
-        self.pending = PageTree()
+        self.pending.clear()
         # Check whether we need hints and the user offered to give them
         if self.untranslated and not self.hintsAsked:
             self.reportInterwikilessPage(page)
@@ -1347,7 +1309,7 @@ class Subject(interwiki_graph.Subject):
 
     def isDone(self):
         """Return True if all the work for this subject has completed."""
-        return len(self.todo) == 0
+        return not self.todo
 
     def problem(self, txt, createneed=True):
         """Report a problem with the resolution of this subject."""
@@ -1906,10 +1868,11 @@ class InterwikiBot:
         # in a way that saves bandwidth.
         # sites are keys, integers are values.
         # Modify this only via plus() and minus()!
-        self.counts = {}
+        self.counts = Counter()
         self.pageGenerator = None
         self.generated = 0
         self.conf = conf
+        self.site = pywikibot.Site()
 
     def add(self, page, hints=None):
         """Add a single subject to the list."""
@@ -2015,10 +1978,9 @@ class InterwikiBot:
         If there is nothing left, return None.
         Only languages that are TODO for the first Subject are returned.
         """
-        max_ = 0
-        maxlang = None
         if not self.firstSubject():
             return None
+
         oc = dict(self.firstSubject().openSites())
         if not oc:
             # The first subject is done. This might be a recursive call made
@@ -2026,21 +1988,18 @@ class InterwikiBot:
             # go live. Select any language from counts.
             oc = self.counts
 
-        default_site = pywikibot.Site()
-        if default_site in oc:
-            return default_site
+        if self.site in oc:
+            return self.site
 
-        for lang in oc:
-            count = self.counts[lang]
-            if count > max_:
-                max_ = count
-                maxlang = lang
-        return maxlang
+        for site, _ in self.counts.most_common():
+            if site in oc:
+                return site
+        return None
 
     def selectQuerySite(self):
         """Select the site the next query should go out for."""
         # How many home-language queries we still have?
-        mycount = self.counts.get(pywikibot.Site(), 0)
+        mycount = self.counts[self.site]
         # Do we still have enough subjects to work on for which the
         # home language has been retrieved? This is rough, because
         # some subjects may need to retrieve a second home-language page!
@@ -2062,10 +2021,8 @@ class InterwikiBot:
                     else:
                         break
             # If we have a few, getting the home language is a good thing.
-            if not self.conf.restore_all:
-                with suppress(KeyError):
-                    if self.counts[pywikibot.Site()] > 4:
-                        return pywikibot.Site()
+            if not self.conf.restore_all and self.counts[self.site] > 4:
+                return self.site
         # If getting the home language doesn't make sense, see how many
         # foreign page queries we can find.
         return self.maxOpenSite()
@@ -2127,14 +2084,12 @@ class InterwikiBot:
 
     def plus(self, site, count=1):
         """Helper routine that the Subject class expects in a counter."""
-        try:
-            self.counts[site] += count
-        except KeyError:
-            self.counts[site] = count
+        self.counts[site] += count
 
     def minus(self, site, count=1):
         """Helper routine that the Subject class expects in a counter."""
         self.counts[site] -= count
+        self.counts = +self.counts  # remove zero and negative counts
 
     def run(self):
         """Start the process until finished."""
