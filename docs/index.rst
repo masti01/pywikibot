@@ -43,7 +43,7 @@ The documentation consists of four major parts:
 #. :doc:`api_ref/index`
 
 For bot users:
-==============
+--------------
 
 .. toctree::
    :maxdepth: 1
@@ -54,10 +54,10 @@ For bot users:
 
 
 For bot developers:
-===================
+-------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    installation
    library_usage
@@ -65,7 +65,7 @@ For bot developers:
    api_ref/index
 
 For framework developers:
-=========================
+-------------------------
 
 .. toctree::
    :maxdepth: 1
@@ -74,8 +74,9 @@ For framework developers:
 
 
 Miscellaneous
-=============
+-------------
 .. toctree::
+   :maxdepth: 1
 
    licenses
    credits
