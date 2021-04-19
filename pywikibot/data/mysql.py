@@ -4,7 +4,8 @@
 #
 # Distributed under the terms of the MIT license.
 #
-from distutils.version import LooseVersion
+import pkg_resources
+
 from typing import Optional
 
 import pywikibot
@@ -19,7 +20,7 @@ from pywikibot import config2 as config
 from pywikibot.tools import deprecated_args
 
 
-@deprecated_args(encoding=None)
+@deprecated_args(encoding=True)
 def mysql_query(query: str, params=None,
                 dbname: Optional[str] = None,
                 verbose: Optional[bool] = None):
@@ -62,7 +63,10 @@ def mysql_query(query: str, params=None,
                                  charset='utf8',
                                  defer_connect=query == 'test',  # for tests
                                  **credentials)
-    if LooseVersion(pymysql.__version__) < LooseVersion('1.0.0'):
+
+    pymysql_version = pkg_resources.parse_version(pymysql.__version__)
+
+    if pymysql_version < pkg_resources.parse_version('1.0.0'):
         from contextlib import closing
         connection = closing(connection)
 

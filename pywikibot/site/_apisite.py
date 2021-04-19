@@ -212,7 +212,7 @@ class APISite(
                         return pywikibot.Site(url=site['url'] + '/w/index.php')
         raise ValueError('Cannot parse a site out of %s.' % dbname)
 
-    @deprecated_args(step=None)
+    @deprecated_args(step=True)
     def _generator(self, gen_class, type_arg: Optional[str] = None,
                    namespaces=None, total: Optional[int] = None, **args):
         """Convenience method that returns an API generator.
@@ -312,10 +312,7 @@ class APISite(
         auth_token = get_authentication(self.base_url(''))
         return auth_token is not None and len(auth_token) == 4
 
-    @deprecated_args(sysop=True)
-    def login(self, sysop=None,
-              autocreate: bool = False,
-              user: Optional[str] = None):
+    def login(self, autocreate: bool = False, user: Optional[str] = None):
         """
         Log the user in if not already logged in.
 
@@ -328,11 +325,6 @@ class APISite(
             by the site.
         @see: U{https://www.mediawiki.org/wiki/API:Login}
         """
-        if sysop is not None:
-            issue_deprecation_warning("'sysop' parameter",
-                                      warning_class=FutureWarning,
-                                      since='20201230')
-
         # TODO: this should include an assert that loginstatus
         #       is not already IN_PROGRESS, however the
         #       login status may be left 'IN_PROGRESS' because
@@ -662,7 +654,7 @@ class APISite(
 
         return OrderedDict((key, _mw_msg_cache[amlang][key]) for key in keys)
 
-    @deprecated_args(forceReload=None)
+    @deprecated_args(forceReload=True)
     def mediawiki_message(self, key, lang=None) -> str:
         """Fetch the text for a MediaWiki message.
 
@@ -821,15 +813,6 @@ class APISite(
         if word in self._magicwords:
             return self._magicwords[word]
         return [word]
-
-    @deprecated('expand_text', since='20150831', future_warning=True)
-    def resolvemagicwords(self, wikitext):  # pragma: no cover
-        """
-        Replace the {{ns:xx}} marks in a wikitext with the namespace names.
-
-        DEPRECATED.
-        """
-        return self.expand_text(wikitext)
 
     @remove_last_args(('default', ))
     def redirect(self):

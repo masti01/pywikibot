@@ -205,7 +205,7 @@ class CosmeticChangesToolkit:
 
     """Cosmetic changes toolkit."""
 
-    @deprecated_args(redirect=None, diff='show_diff', site='page')
+    @deprecated_args(redirect=True, diff='show_diff', site='page')
     def __init__(self, page, *,
                  show_diff: bool = False,
                  namespace: Optional[int] = None,
@@ -968,7 +968,7 @@ class CosmeticChangesToolkit:
         return text
 
     def fixArabicLetters(self, text):
-        """Fix arabic and persian letters."""
+        """Fix Arabic and Persian letters."""
         if self.site.code not in ['ckb', 'fa']:
             return text
 

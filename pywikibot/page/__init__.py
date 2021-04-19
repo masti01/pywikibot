@@ -58,7 +58,6 @@ from pywikibot.tools import (
     deprecated,
     deprecate_arg,
     deprecated_args,
-    DotReadableDict,
     first_upper,
     redirect_func,
     remove_last_args,
@@ -2574,7 +2573,7 @@ class Category(Page):
                             if total == 0:
                                 return
 
-    @deprecated_args(startFrom='startprefix', startsort=None, endsort=None)
+    @deprecated_args(startFrom='startprefix', startsort=True, endsort=True)
     def articles(self,
                  recurse: Union[int, bool] = False,
                  total: Optional[int] = None,
@@ -4873,7 +4872,7 @@ class Claim(Property):
         }
 
 
-class FileInfo(DotReadableDict):
+class FileInfo:
 
     """
     A structure holding imageinfo of latest rev. of FilePage.
@@ -4894,6 +4893,14 @@ class FileInfo(DotReadableDict):
         """Initiate the class using the dict from L{APISite.loadimageinfo}."""
         self.__dict__.update(file_revision)
         self.timestamp = pywikibot.Timestamp.fromISOformat(self.timestamp)
+
+    def __getitem__(self, key):
+        """Give access to class values by key."""
+        return getattr(self, key)
+
+    def __repr__(self):
+        """Return a more complete string representation."""
+        return repr(self.__dict__)
 
     def __eq__(self, other):
         """Test if two File_info objects are equal."""
