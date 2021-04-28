@@ -1014,7 +1014,7 @@ class EmptyDefault(str, Mapping):
 
     def __iter__(self):
         """An iterator which does nothing and drops the argument."""
-        return empty_iterator()
+        return iter(())
 
     def __getitem__(self, key):
         """Raise always a L{CombinedError}."""
@@ -1035,11 +1035,11 @@ class SelfCallMixin:
 
     def __call__(self):
         """Do nothing and just return itself."""
-        if hasattr(self, '_own_desc'):
-            issue_deprecation_warning('Calling {}'.format(self._own_desc),
-                                      'it directly',
-                                      warning_class=FutureWarning,
-                                      since='20150515')
+        issue_deprecation_warning('Referencing this attribute like a function',
+                                  'it directly',
+                                  warning_class=FutureWarning,
+                                  since='20210420')
+
         return self
 
 
@@ -1928,6 +1928,8 @@ def concat_options(message, line_length, options):
 
 
 wrapper = ModuleDeprecationWrapper(__name__)
+wrapper._add_deprecated_attr('empty_iterator', replacement_name='iter(())',
+                             since='20220422', future_warning=True)
 wrapper._add_deprecated_attr('DotReadableDict', replacement_name='',
                              since='20210416', future_warning=True)
 wrapper._add_deprecated_attr('frozenmap',
