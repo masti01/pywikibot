@@ -24,7 +24,6 @@ from __future__ import print_function
 import os
 import sys
 import types
-
 from difflib import get_close_matches
 from importlib import import_module
 from time import sleep
@@ -187,12 +186,13 @@ except RuntimeError as e:  # setup.py may also raise RuntimeError
 
 from pathlib import Path  # noqa: E402
 
+
 filename, script_args, global_args = handle_args(*sys.argv)
 
 # Search for user-config.py before creating one.
 # If successful, user-config.py already exists in one of the candidate
-# directories. See config2.py for details on search order.
-# Use env var to communicate to config2.py pwb.py location (bug T74918).
+# directories. See config.py for details on search order.
+# Use env var to communicate to config.py pwb.py location (bug T74918).
 _pwb_dir = os.path.split(__file__)[0]
 os.environ['PYWIKIBOT_DIR_PWB'] = _pwb_dir
 try:
@@ -200,6 +200,7 @@ try:
 except RuntimeError:
     os.environ['PYWIKIBOT_NO_USER_CONFIG'] = '2'
     import pywikibot as pwb
+
     # user-config.py to be created
     if filename is not None and not (filename.startswith('generate_')
                                      or filename == 'version.py'):
@@ -219,7 +220,7 @@ except ImportError as e:  # raised in textlib
 def find_alternates(filename, script_paths):
     """Search for similar filenames in the given script paths."""
     from pywikibot import config, input_choice, output
-    from pywikibot.bot import ShowingListOption, QuitKeyboardInterrupt
+    from pywikibot.bot import QuitKeyboardInterrupt, ShowingListOption
     from pywikibot.tools.formatter import color_format
 
     assert config.pwb_close_matches > 0, \

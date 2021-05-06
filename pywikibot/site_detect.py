@@ -5,7 +5,6 @@
 # Distributed under the terms of the MIT license.
 #
 import json
-
 from contextlib import suppress
 from html.parser import HTMLParser
 from http import HTTPStatus

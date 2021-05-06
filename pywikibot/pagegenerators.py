@@ -24,29 +24,32 @@ import itertools
 import json
 import re
 import sys
-
-from collections.abc import Iterator
 from collections import namedtuple
+from collections.abc import Iterator
 from datetime import timedelta
 from functools import partial
 from http import HTTPStatus
 from itertools import zip_longest
-from requests.exceptions import ReadTimeout
 from typing import Optional, Union
 
-import pywikibot
+from requests.exceptions import ReadTimeout
 
-from pywikibot import date, config, i18n, xmlreader
+import pywikibot
+from pywikibot import config, date, i18n, xmlreader
 from pywikibot.backports import Iterable, List
 from pywikibot.bot import ShowingListOption
 from pywikibot.comms import http
 from pywikibot.data import api
-from pywikibot.exceptions import ServerError, UnknownExtension
+from pywikibot.exceptions import (
+    NoPageError,
+    ServerError,
+    UnknownExtensionError,
+)
 from pywikibot.proofreadpage import ProofreadPage
 from pywikibot.tools import (
+    DequeGenerator,
     deprecated,
     deprecated_args,
-    DequeGenerator,
     filter_unique,
     intersect_generators,
     itergroup,
@@ -753,7 +756,7 @@ class GeneratorFactory:
     def _handle_linter(self, value):
         """Handle `-linter` argument."""
         if not self.site.has_extension('Linter'):
-            raise UnknownExtension(
+            raise UnknownExtensionError(
                 '-linter needs a site with Linter extension.')
         cats = self.site.siteinfo.get('linter')  # Get linter categories.
         valid_cats = [c for _list in cats.values() for c in _list]
@@ -1138,7 +1141,7 @@ class GeneratorFactory:
     def _handle_ql(self, value):
         """Handle `-ql` argument."""
         if not self.site.has_extension('ProofreadPage'):
-            raise UnknownExtension(
+            raise UnknownExtensionError(
                 'Ql filtering needs a site with ProofreadPage extension.')
         value = [int(_) for _ in value.split(',')]
         if min(value) < 0 or max(value) > 4:  # Invalid input ql.
@@ -1757,7 +1760,7 @@ class ItemClaimFilter:
             except (AttributeError, AssertionError):
                 try:
                     page = pywikibot.ItemPage.fromPage(page)
-                except pywikibot.NoPage:
+                except NoPageError:
                     return False
 
         def match_qualifiers(page_claim, qualifiers):
@@ -2250,7 +2253,7 @@ def WikibaseItemFilterPageGenerator(generator, has_item: bool = True,
     for page in generator or []:
         try:
             page_item = pywikibot.ItemPage.fromPage(page, lazy_load=False)
-        except pywikibot.NoPage:
+        except NoPageError:
             page_item = None
 
         to_be_skipped = bool(page_item) != has_item
@@ -2588,8 +2591,8 @@ class GoogleSearchPageGenerator:
 
         L{https://pypi.org/project/google}
 
-    This package has been available since 2010, hosted on github
-    since 2012, and provided by pypi since 2013.
+    This package has been available since 2010, hosted on GitHub
+    since 2012, and provided by PyPI since 2013.
 
     As there are concerns about Google's Terms of Service, this
     generator prints a warning for each query.
@@ -2663,7 +2666,7 @@ def MySQLPageGenerator(query, site=None, verbose=None):
         FROM page
         WHERE page_namespace = 0;
 
-    See https://www.mediawiki.org/wiki/Manual:Pywikibot/MySQL.
+    See https://www.mediawiki.org/wiki/Manual:Pywikibot/MySQL
 
     @param query: MySQL query to execute
     @param site: Site object
@@ -2680,7 +2683,6 @@ def MySQLPageGenerator(query, site=None, verbose=None):
 
     row_gen = mysql.mysql_query(query,
                                 dbname=site.dbName(),
-                                encoding=site.encoding(),
                                 verbose=verbose)
 
     for row in row_gen:

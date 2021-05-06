@@ -6,6 +6,7 @@
 #
 import atexit
 import datetime
+import inspect
 import math
 import re
 import threading
@@ -18,46 +19,56 @@ from typing import Optional, Union
 from urllib.parse import urlparse
 from warnings import warn
 
+from pywikibot import config as _config
+from pywikibot import exceptions
 from pywikibot.__metadata__ import (
-    __copyright__, __description__, __download_url__, __license__,
-    __maintainer__, __maintainer_email__, __name__, __url__, __version__)
-
+    __copyright__,
+    __description__,
+    __download_url__,
+    __license__,
+    __maintainer__,
+    __maintainer_email__,
+    __name__,
+    __url__,
+    __version__,
+)
 from pywikibot._wbtypes import WbRepresentation as _WbRepresentation
 from pywikibot.backports import cache, removesuffix
 from pywikibot.bot import (
-    input, input_choice, input_yn, handle_args, show_help, ui,
-    calledModuleName, Bot, CurrentPageBot, WikidataBot,
+    Bot,
+    CurrentPageBot,
+    WikidataBot,
+    calledModuleName,
+    handle_args,
+    input,
+    input_choice,
+    input_yn,
+    show_help,
+    ui,
 )
-from pywikibot.bot_choice import (
-    QuitKeyboardInterrupt as _QuitKeyboardInterrupt,
-)
-from pywikibot import config2 as config
-from pywikibot.data.api import UploadWarning
 from pywikibot.diff import PatchManager
 from pywikibot.exceptions import (
-    CaptchaError, CascadeLockedPage, CircularRedirect,
-    CoordinateGlobeUnknownException, EditConflict, Error, FatalServerError,
-    InterwikiRedirectPage, InvalidTitle, IsNotRedirectPage, IsRedirectPage,
-    LockedNoPage, LockedPage, NoCreateError, NoMoveTarget, NoPage,
-    NoUsername, NoWikibaseEntity, OtherPageSaveError, PageCreatedConflict,
-    PageDeletedConflict, PageRelatedError, PageSaveRelatedError, SectionError,
-    Server414Error, Server504Error, ServerError, SiteDefinitionError,
-    SpamblacklistError, TitleblacklistError, UnknownExtension, UnknownFamily,
-    UnknownSite, UnsupportedPage, WikiBaseError,
+    CoordinateGlobeUnknownError,
+    DEPRECATED_EXCEPTIONS,
 )
 from pywikibot.family import AutoFamily, Family
 from pywikibot.i18n import translate
 from pywikibot.logging import (
-    critical, debug, error, exception, log, output, stdout, warning
+    critical,
+    debug,
+    error,
+    exception,
+    log,
+    output,
+    stdout,
+    warning,
 )
-from pywikibot.site import BaseSite, DataSite, APISite, ClosedSite
+from pywikibot.site import APISite, BaseSite, ClosedSite, DataSite
 from pywikibot.tools import (
-    classproperty,
-    deprecate_arg as _deprecate_arg,
-    normalize_username,
-    MediaWikiVersion as _MediaWikiVersion,
     ModuleDeprecationWrapper as _ModuleDeprecationWrapper,
 )
+from pywikibot.tools import classproperty, normalize_username
+from pywikibot.tools import deprecate_arg as _deprecate_arg
 from pywikibot.tools.formatter import color_format
 
 
@@ -66,7 +77,7 @@ __all__ = (
     '__maintainer__', '__maintainer_email__', '__name__',
     '__url__', '__version__',
     'Bot', 'calledModuleName', 'CaptchaError', 'CascadeLockedPage',
-    'Category', 'CircularRedirect', 'Claim', 'config', 'Coordinate',
+    'Category', 'CircularRedirect', 'Claim', 'Coordinate',
     'CoordinateGlobeUnknownException', 'critical', 'CurrentPageBot', 'debug',
     'EditConflict', 'error', 'Error', 'exception', 'FatalServerError',
     'FilePage', 'handle_args', 'html2unicode', 'input', 'input_choice',
@@ -75,14 +86,14 @@ __all__ = (
     'NoCreateError', 'NoMoveTarget', 'NoPage', 'NoUsername',
     'NoWikibaseEntity', 'OtherPageSaveError', 'output', 'Page',
     'PageCreatedConflict', 'PageDeletedConflict', 'PageRelatedError',
-    'PageSaveRelatedError', 'PropertyPage', '_QuitKeyboardInterrupt',
-    'SectionError', 'Server414Error', 'Server504Error', 'ServerError',
-    'showDiff', 'show_help', 'Site', 'SiteDefinitionError', 'SiteLink',
-    'SpamblacklistError', 'stdout', 'Timestamp', 'TitleblacklistError',
-    'translate', 'ui', 'unicode2html', 'UnknownExtension', 'UnknownFamily',
-    'UnknownSite', 'UnsupportedPage', 'UploadWarning', 'url2unicode', 'User',
-    'warning', 'WbGeoShape', 'WbMonolingualText', 'WbQuantity',
-    'WbTabularData', 'WbTime', 'WbUnknown', 'WikiBaseError', 'WikidataBot',
+    'PageSaveRelatedError', 'PropertyPage', 'SectionError', 'Server414Error',
+    'Server504Error', 'ServerError', 'showDiff', 'show_help', 'Site',
+    'SiteDefinitionError', 'SiteLink', 'SpamblacklistError', 'stdout',
+    'Timestamp', 'TitleblacklistError', 'translate', 'ui', 'unicode2html',
+    'UnknownExtension', 'UnknownFamily', 'UnknownSite', 'UnsupportedPage',
+    'UploadWarning', 'url2unicode', 'User', 'warning', 'WbGeoShape',
+    'WbMonolingualText', 'WbQuantity', 'WbTabularData', 'WbTime', 'WbUnknown',
+    'WikiBaseError', 'WikidataBot',
 )
 
 
@@ -245,7 +256,7 @@ class Coordinate(_WbRepresentation):
         """Return the entity uri of the globe."""
         if not self._entity:
             if self.globe not in self.site.globes():
-                raise CoordinateGlobeUnknownException(
+                raise CoordinateGlobeUnknownError(
                     '%s is not supported in Wikibase yet.'
                     % self.globe)
             return self.site.globes()[self.globe]
@@ -1055,7 +1066,7 @@ def _code_fam_from_url(url: str, name: Optional[str] = None):
     matched_sites = []
     # Iterate through all families and look, which does apply to
     # the given URL
-    for fam in config.family_files:
+    for fam in _config.family_files:
         family = Family.load(fam)
         code = family.from_url(url)
         if code is not None:
@@ -1115,8 +1126,8 @@ def Site(code: Optional[str] = None, fam=None, user: Optional[str] = None, *,
         fam, _, code = code.partition(':')
     else:
         # Fallback to config defaults
-        code = code or config.mylang
-        fam = fam or config.family
+        code = code or _config.mylang
+        fam = fam or _config.family
 
     if not isinstance(fam, Family):
         fam = Family.load(fam)
@@ -1127,9 +1138,9 @@ def Site(code: Optional[str] = None, fam=None, user: Optional[str] = None, *,
     family_name = str(fam)
 
     code_to_user = {}
-    if '*' in config.usernames:  # T253127: usernames is a defaultdict
-        code_to_user = config.usernames['*'].copy()
-    code_to_user.update(config.usernames[family_name])
+    if '*' in _config.usernames:  # T253127: usernames is a defaultdict
+        code_to_user = _config.usernames['*'].copy()
+    code_to_user.update(_config.usernames[family_name])
     user = user or code_to_user.get(code) or code_to_user.get('*')
 
     if not isinstance(interface, type):
@@ -1160,18 +1171,19 @@ def Site(code: Optional[str] = None, fam=None, user: Optional[str] = None, *,
 
 # These imports depend on Wb* classes above.
 from pywikibot.page import (  # noqa: E402
-    Page,
-    FilePage,
     Category,
+    Claim,
+    FilePage,
+    ItemPage,
     Link,
+    Page,
+    PropertyPage,
     SiteLink,
     User,
-    ItemPage,
-    PropertyPage,
-    Claim,
+    html2unicode,
+    unicode2html,
+    url2unicode,
 )
-from pywikibot.page import (  # noqa: E402
-    html2unicode, url2unicode, unicode2html)
 
 
 link_regex = re.compile(r'\[\[(?P<title>[^\]|[<>{}]*)(\|.*?)?\]\]')
@@ -1231,7 +1243,7 @@ def _flush(stop=True):
             remainingPages -= 1
 
         remainingSeconds = datetime.timedelta(
-            seconds=round(remainingPages * config.put_throttle))
+            seconds=round(remainingPages * _config.put_throttle))
         return (remainingPages, remainingSeconds)
 
     if stop:
@@ -1239,7 +1251,7 @@ def _flush(stop=True):
         page_put_queue.put((None, [], {}))
 
     num, sec = remaining()
-    if num > 0 and sec.total_seconds() > config.noisysleep:
+    if num > 0 and sec.total_seconds() > _config.noisysleep:
         output(color_format(
             '{lightblue}Waiting for {num} pages to be put. '
             'Estimated time remaining: {sec}{default}', num=num, sec=sec))
@@ -1292,9 +1304,9 @@ def async_request(request, *args, **kwargs):
 
 
 # queue to hold pending requests
-page_put_queue = Queue(config.max_queue_size)
+page_put_queue = Queue(_config.max_queue_size)
 # queue to signal that async_manager is working on a request. See T147178.
-page_put_queue_busy = Queue(config.max_queue_size)
+page_put_queue_busy = Queue(_config.max_queue_size)
 # set up the background thread
 _putthread = threading.Thread(target=async_manager)
 # identification for debugging purposes
@@ -1302,18 +1314,36 @@ _putthread.setName('Put-Thread')
 _putthread.setDaemon(True)
 
 wrapper = _ModuleDeprecationWrapper(__name__)
-wrapper._add_deprecated_attr(
-    'QuitKeyboardInterrupt', _QuitKeyboardInterrupt,
-    warning_message='pywikibot.QuitKeyboardInterrupt is deprecated; '
-                    'use pywikibot.bot.QuitKeyboardInterrupt instead.',
-    since='20150619', future_warning=True)
-wrapper._add_deprecated_attr(
-    'MediaWikiVersion', _MediaWikiVersion,
-    warning_message='pywikibot.MediaWikiVersion is deprecated; '
-                    'use pywikibot.tools.MediaWikiVersion instead.',
-    since='20180827')
+wrapper._add_deprecated_attr('config2', replacement_name='pywikibot.config',
+                             since='20210426', future_warning=True)
 wrapper._add_deprecated_attr('__release__', __version__,
                              replacement_name='pywikibot.__version__',
                              since='20200707')
 wrapper._add_deprecated_attr('showHelp', show_help,
                              since='20200705', future_warning=True)
+
+# This module aliases many (but not all) pywikibot.exception classes and one
+# from pywikibot.data.api. Use of these aliases is deprecated. When removed
+# we can drop them from both our import and __all__ listing.
+
+EXCEPTION_CLASSES = {
+    n for n, _ in inspect.getmembers(exceptions, inspect.isclass)
+}
+
+EXCEPTION_CLASSES.add('UploadWarning')
+EXCEPTION_CLASSES.update(DEPRECATED_EXCEPTIONS.keys())
+
+for name in __all__:
+    if name in EXCEPTION_CLASSES:
+        if name in DEPRECATED_EXCEPTIONS:
+            replacement = DEPRECATED_EXCEPTIONS[name]
+        elif name == 'UploadWarning':
+            replacement = 'UploadError'
+        else:
+            replacement = name
+
+        wrapper._add_deprecated_attr(
+            name,
+            replacement_name='pywikibot.exceptions.{}'.format(replacement),
+            since='20210424', future_warning=True
+        )

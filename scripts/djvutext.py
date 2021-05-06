@@ -32,15 +32,13 @@ The following parameters are supported:
 # Distributed under the terms of the MIT license.
 #
 import os.path
-
 from typing import Optional
 
 import pywikibot
-
 from pywikibot import i18n
-
 from pywikibot.backports import Tuple
 from pywikibot.bot import SingleSiteBot
+from pywikibot.exceptions import NoPageError
 from pywikibot.proofreadpage import ProofreadPage
 from pywikibot.tools.djvu import DjVuFile
 
@@ -192,7 +190,7 @@ def main(*args: Tuple[str, ...]):
     index_page = pywikibot.Page(site, index, ns=site.proofread_index_ns)
 
     if not index_page.exists():
-        raise pywikibot.NoPage(index)
+        raise NoPageError(index)
 
     pywikibot.output('uploading text from {} to {}'
                      .format(djvu.file, index_page.title(as_link=True)))

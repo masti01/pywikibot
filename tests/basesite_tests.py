@@ -7,10 +7,10 @@
 from contextlib import suppress
 
 import pywikibot
-
+from pywikibot.exceptions import Error
 from pywikibot.tools import suppress_warnings
-
 from tests.aspects import DefaultSiteTestCase, TestCase, unittest
+
 
 WARN_SELF_CALL = (r'Referencing this attribute like a function '
                   r'is deprecated for .*; use it directly instead')
@@ -97,7 +97,7 @@ class TestSiteObject(DefaultSiteTestCase):
 
         try:
             dabcat = mysite.disambcategory()
-        except pywikibot.Error as e:
+        except Error as e:
             try:
                 self.assertIn('No disambiguation category name found', str(e))
             except AssertionError:

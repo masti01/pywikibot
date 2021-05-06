@@ -7,11 +7,9 @@
 from contextlib import suppress
 
 import pywikibot
-
 from pywikibot import Page, Timestamp, User
-from pywikibot.exceptions import AutoblockUser
+from pywikibot.exceptions import AutoblockUserError
 from pywikibot.tools import suppress_warnings
-
 from tests import patch
 from tests.aspects import DefaultSiteTestCase, TestCase, unittest
 
@@ -135,11 +133,11 @@ class TestUserClass(TestCase):
         self.assertIn('invalid', user.getprops())
         self.assertTrue(user._isAutoblock)
         with self.assertRaisesRegex(
-                AutoblockUser,
+                AutoblockUserError,
                 'This is an autoblock ID'):
             user.getUserPage()
         with self.assertRaisesRegex(
-                AutoblockUser,
+                AutoblockUserError,
                 'This is an autoblock ID'):
             user.getUserTalkPage()
 
@@ -160,11 +158,11 @@ class TestUserClass(TestCase):
         self.assertIn('invalid', user.getprops())
         self.assertTrue(user._isAutoblock)
         with self.assertRaisesRegex(
-                AutoblockUser,
+                AutoblockUserError,
                 'This is an autoblock ID'):
             user.getUserPage()
         with self.assertRaisesRegex(
-                AutoblockUser,
+                AutoblockUserError,
                 'This is an autoblock ID'):
             user.getUserTalkPage()
 

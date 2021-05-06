@@ -5,11 +5,9 @@
 # Distributed under the terms of the MIT license.
 #
 import unittest
-
 from contextlib import suppress
 
 from pywikibot.tools import formatter
-
 from tests.aspects import TestCase
 
 
@@ -37,7 +35,7 @@ class TestColorFormat(TestCase):
 
     class DummyUnicode:
 
-        """Dummy class that __str__ returns a non-ascii unicode value."""
+        """Dummy class that __str__ returns a non-ASCII Unicode value."""
 
         def __str__(self):
             """Return ä."""

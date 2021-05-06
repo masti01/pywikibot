@@ -5,16 +5,14 @@
 # Distributed under the terms of the MIT license.
 #
 import os
-
 from contextlib import suppress
 
 from pywikibot.login import OauthLoginManager
-
 from tests.aspects import (
-    unittest,
-    require_modules,
-    TestCase,
     DefaultSiteTestCase,
+    TestCase,
+    require_modules,
+    unittest,
 )
 
 

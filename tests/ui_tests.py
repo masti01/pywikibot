@@ -29,22 +29,32 @@ import os
 import subprocess
 import sys
 import time
-
 from contextlib import suppress
 
 import pywikibot
 from pywikibot.bot import (
-    ui, DEBUG, VERBOSE, INFO, STDOUT, INPUT, WARNING, ERROR, CRITICAL
+    CRITICAL,
+    DEBUG,
+    ERROR,
+    INFO,
+    INPUT,
+    STDOUT,
+    VERBOSE,
+    WARNING,
+    ui,
 )
 from pywikibot.userinterfaces import (
-    terminal_interface_win32, terminal_interface_base, terminal_interface_unix,
+    terminal_interface_base,
+    terminal_interface_unix,
+    terminal_interface_win32,
 )
 from tests.aspects import TestCase, TestCaseBase
-from tests.utils import unittest, FakeModule
+from tests.utils import FakeModule, unittest
+
 
 if os.name == 'nt':
-    from multiprocessing.managers import BaseManager
     import threading
+    from multiprocessing.managers import BaseManager
 
     try:
         import win32api
@@ -722,12 +732,12 @@ class FakeUIColorizedTestBase(TestCase):
     def setUp(self):
         """Force colorized_output to True."""
         super().setUp()
-        self._old_config = pywikibot.config2.colorized_output
-        pywikibot.config2.colorized_output = True
+        self._old_config = pywikibot.config.colorized_output
+        pywikibot.config.colorized_output = True
 
     def tearDown(self):
         """Undo colorized_output configuration."""
-        pywikibot.config2.colorized_output = self._old_config
+        pywikibot.config.colorized_output = self._old_config
         super().tearDown()
 
 

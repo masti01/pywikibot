@@ -8,19 +8,19 @@ import inspect
 import os
 import sys
 import warnings
-
 from contextlib import contextmanager
 from subprocess import PIPE, Popen, TimeoutExpired
 from types import ModuleType
 
 import pywikibot
-
 from pywikibot import config
-from pywikibot.data.api import CachedRequest, APIError
+from pywikibot.data.api import CachedRequest
 from pywikibot.data.api import Request as _original_Request
+from pywikibot.exceptions import APIError
 from pywikibot.login import LoginStatus
 from pywikibot.site import Namespace
 from tests import _pwb_py, unittest
+
 
 try:
     from cryptography import __version__ as cryptography_version

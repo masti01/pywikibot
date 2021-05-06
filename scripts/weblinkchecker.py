@@ -114,7 +114,6 @@ import pickle
 import re
 import threading
 import time
-
 from contextlib import suppress
 from functools import partial
 from http import HTTPStatus
@@ -122,16 +121,19 @@ from http import HTTPStatus
 import requests
 
 import pywikibot
-
-from pywikibot import comms, i18n, pagegenerators, textlib
-from pywikibot import config2 as config
-
+from pywikibot import comms, config, i18n, pagegenerators, textlib
 from pywikibot.bot import ExistingPageBot, SingleSiteBot, suggest_help
+from pywikibot.exceptions import (
+    IsRedirectPageError,
+    NoPageError,
+    SpamblacklistError,
+)
 from pywikibot.pagegenerators import (
     XMLDumpPageGenerator as _XMLDumpPageGenerator,
 )
-from pywikibot.tools.formatter import color_format
 from pywikibot.tools import ThreadList
+from pywikibot.tools.formatter import color_format
+
 
 try:
     import memento_client
@@ -463,7 +465,7 @@ class DeadLinkReportThread(threading.Thread):
     A Thread that is responsible for posting error reports on talk pages.
 
     There is only one DeadLinkReportThread, and it is using a semaphore to make
-    sure that two LinkCheckerThreads can not access the queue at the same time.
+    sure that two LinkCheckerThreads cannot access the queue at the same time.
     """
 
     def __init__(self):
@@ -512,7 +514,7 @@ class DeadLinkReportThread(threading.Thread):
                             'already been reported on {}{default}',
                             talkPage))
                         continue
-                except (pywikibot.NoPage, pywikibot.IsRedirectPage):
+                except (NoPageError, IsRedirectPageError):
                     content = ''
 
                 if archiveURL:
@@ -546,7 +548,7 @@ class DeadLinkReportThread(threading.Thread):
                                      'weblinkchecker-summary'))
                 try:
                     talkPage.put(content, comment)
-                except pywikibot.SpamblacklistError as error:
+                except SpamblacklistError as error:
                     pywikibot.output(color_format(
                         '{lightaqua}** SpamblacklistError while trying to '
                         'change {0}: {1}{default}',

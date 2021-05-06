@@ -9,16 +9,19 @@ import logging
 import re
 import sys
 import threading
-
 from typing import Any, Optional, Union
 
 import pywikibot
-from pywikibot import config2 as config
-
+from pywikibot import config
 from pywikibot.backports import Sequence
-from pywikibot.bot import VERBOSE, INFO, STDOUT, INPUT, WARNING
-from pywikibot.bot_choice import (ChoiceException, Option, OutputOption,
-                                  QuitKeyboardInterrupt, StandardOption)
+from pywikibot.bot_choice import (
+    ChoiceException,
+    Option,
+    OutputOption,
+    QuitKeyboardInterrupt,
+    StandardOption,
+)
+from pywikibot.logging import INFO, INPUT, STDOUT, VERBOSE, WARNING
 from pywikibot.userinterfaces import transliteration
 
 

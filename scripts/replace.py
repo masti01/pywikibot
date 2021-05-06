@@ -144,17 +144,14 @@ the top of the help.
 #
 import codecs
 import re
-
 from collections.abc import Sequence
 from contextlib import suppress
 from queue import Queue
 
 import pywikibot
-from pywikibot import editor
-# Imports predefined replacements tasks from fixes.py
-from pywikibot import fixes
-from pywikibot import i18n, textlib, pagegenerators
+from pywikibot import editor, fixes, i18n, pagegenerators, textlib
 from pywikibot.bot import ExistingPageBot, SingleSiteBot
+from pywikibot.exceptions import InvalidPageError, NoPageError
 from pywikibot.tools import chars, deprecated_args
 
 
@@ -675,7 +672,11 @@ class ReplaceRobot(SingleSiteBot, ExistingPageBot):
 
     def treat(self, page):
         """Work on each page retrieved from generator."""
-        original_text = page.text
+        try:
+            original_text = page.text
+        except InvalidPageError:
+            pywikibot.exception()
+            return
         applied = set()
         new_text = original_text
         last_text = None
@@ -739,7 +740,7 @@ class ReplaceRobot(SingleSiteBot, ExistingPageBot):
                 pywikibot.bot.open_webbrowser(page)
                 try:
                     original_text = page.get(get_redirect=True, force=True)
-                except pywikibot.NoPage:
+                except NoPageError:
                     pywikibot.output('Page {0} has been deleted.'
                                      .format(page.title()))
                     break

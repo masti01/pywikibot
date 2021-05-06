@@ -58,17 +58,24 @@ Warning! Put it in one line, otherwise it won't work correctly:
 import codecs
 import re
 import sys
-
 from typing import Optional, Union
 
 import pywikibot
-
-from pywikibot.backports import Tuple
 from pywikibot import config, i18n, pagegenerators, textlib
+from pywikibot.backports import Tuple
 from pywikibot.bot_choice import QuitKeyboardInterrupt
-from pywikibot.exceptions import ArgumentDeprecationWarning
-from pywikibot.tools.formatter import color_format
+from pywikibot.exceptions import (
+    ArgumentDeprecationWarning,
+    EditConflictError,
+    IsRedirectPageError,
+    LockedPageError,
+    NoPageError,
+    PageSaveRelatedError,
+    ServerError,
+    SpamblacklistError,
+)
 from pywikibot.tools import issue_deprecation_warning
+from pywikibot.tools.formatter import color_format
 
 
 docuReplacements = {'&params;': pagegenerators.parameterHelp}  # noqa: N816
@@ -88,7 +95,7 @@ def get_text(page, old: str, create: bool) -> str:
     if old is None:
         try:
             text = page.get()
-        except pywikibot.NoPage:
+        except NoPageError:
             if create:
                 pywikibot.output(
                     "{} doesn't exist, creating it!".format(page.title()))
@@ -97,7 +104,7 @@ def get_text(page, old: str, create: bool) -> str:
                 pywikibot.output(
                     "{} doesn't exist, skip!".format(page.title()))
                 return None
-        except pywikibot.IsRedirectPage:
+        except IsRedirectPageError:
             pywikibot.output('{} is a redirect, skip!'.format(page.title()))
             return None
     else:
@@ -123,22 +130,22 @@ def put_text(page, new: str, summary: str, count: int,
     try:
         page.save(summary=summary, asynchronous=asynchronous,
                   minor=page.namespace() != 3)
-    except pywikibot.EditConflict:
+    except EditConflictError:
         pywikibot.output('Edit conflict! skip!')
-    except pywikibot.ServerError:
+    except ServerError:
         if count <= config.max_retries:
             pywikibot.output('Server Error! Wait..')
             pywikibot.sleep(config.retry_wait)
             return None
-        raise pywikibot.ServerError(
+        raise ServerError(
             'Server Error! Maximum retries exceeded')
-    except pywikibot.SpamblacklistError as e:
+    except SpamblacklistError as e:
         pywikibot.output(
             'Cannot change {} because of blacklist entry {}'
             .format(page.title(), e.url))
-    except pywikibot.LockedPage:
+    except LockedPageError:
         pywikibot.output('Skipping {} (locked page)'.format(page.title()))
-    except pywikibot.PageSaveRelatedError as error:
+    except PageSaveRelatedError as error:
         pywikibot.output('Error putting page: {}'.format(error.args))
     else:
         return True

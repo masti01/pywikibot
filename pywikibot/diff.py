@@ -6,7 +6,6 @@
 #
 import difflib
 import math
-
 from collections.abc import Sequence
 from difflib import _format_range_unified as format_range_unified
 from itertools import zip_longest

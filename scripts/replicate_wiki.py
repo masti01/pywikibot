@@ -43,13 +43,12 @@ The following parameters are supported:
 # Distributed under the terms of the MIT license.
 #
 import sys
-
 from argparse import ArgumentParser
 from collections import defaultdict
 
 import pywikibot
-
-from pywikibot import config, Page
+from pywikibot import Page, config
+from pywikibot.exceptions import IsRedirectPageError, NoPageError
 
 
 def multiple_replace(text, word_dict):
@@ -142,10 +141,10 @@ class SyncSites:
                          'MediaWiki:Sitenotice', 'MediaWiki:MenuSidebar']:
                 try:
                     self.check_page(p)
-                except pywikibot.exceptions.NoPage:
-                    pywikibot.output('Bizarre NoPage exception that we are '
+                except NoPageError:
+                    pywikibot.output('Bizarre NoPageError that we are '
                                      'just going to ignore')
-                except pywikibot.exceptions.IsRedirectPage:
+                except IsRedirectPageError:
                     pywikibot.output(
                         'error: Redirectpage - todo: handle gracefully')
         pywikibot.output('')

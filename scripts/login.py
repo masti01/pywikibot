@@ -44,9 +44,9 @@ subdirectory.
 # Distributed under the terms of the MIT license.
 #
 import pywikibot
-
-from pywikibot.backports import Tuple
+import pywikibot.bot
 from pywikibot import config
+from pywikibot.backports import Tuple
 from pywikibot.exceptions import SiteDefinitionError
 from pywikibot.login import OauthLoginManager
 

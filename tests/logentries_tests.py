@@ -6,20 +6,18 @@
 #
 import datetime
 import unittest
-
 from contextlib import suppress
 
 import pywikibot
-
-from pywikibot.exceptions import HiddenKeyError
+from pywikibot.exceptions import HiddenKeyError, NoMoveTargetError
 from pywikibot.family import AutoFamily
 from pywikibot.logentries import (
-    LogEntryFactory, OtherLogEntry, UserTargetLogEntry)
-
-from tests import unittest_print
-from tests.aspects import (
-    MetaTestCaseClass, TestCase, DeprecationTestCase
+    LogEntryFactory,
+    OtherLogEntry,
+    UserTargetLogEntry,
 )
+from tests import unittest_print
+from tests.aspects import DeprecationTestCase, MetaTestCaseClass, TestCase
 
 
 class TestLogentriesBase(TestCase):
@@ -252,13 +250,13 @@ class TestLogentryParams(TestLogentriesBase):
     def test_moved_target_fail_old(self):
         """Test moved_target method failing on older wiki."""
         site = self.get_site('old')
-        with self.assertRaises(pywikibot.NoMoveTarget):
+        with self.assertRaises(NoMoveTargetError):
             self.get_mainpage(site).moved_target()
 
     def test_moved_target_fail_de(self):
         """Test moved_target method failing on de-wiki."""
         page = pywikibot.Page(self.get_site('dewp'), 'Main Page')
-        with self.assertRaises(pywikibot.NoMoveTarget):
+        with self.assertRaises(NoMoveTargetError):
             page.moved_target()
 
     def test_thanks_page(self, key):

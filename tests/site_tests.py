@@ -9,19 +9,25 @@ import random
 import threading
 import time
 import unittest
-
 from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from http import HTTPStatus
 
 import pywikibot
-
-from pywikibot.comms import http
 from pywikibot import config
+from pywikibot.comms import http
 from pywikibot.data import api
-from pywikibot.exceptions import HiddenKeyError
+from pywikibot.exceptions import (
+    APIError,
+    Error,
+    HiddenKeyError,
+    IsNotRedirectPageError,
+    NoPageError,
+    PageInUseError,
+    UnknownExtensionError,
+    UnknownSiteError,
+)
 from pywikibot.tools import suppress_warnings
-
 from tests import WARN_SITE_CODE, patch, unittest_print
 from tests.aspects import (
     AlteredDefaultSiteTestCase,
@@ -309,7 +315,7 @@ class TestSiteObject(DefaultSiteTestCase):
             self.assertIsInstance(mysite.getredirtarget(mainpage),
                                   pywikibot.Page)
         else:
-            with self.assertRaises(pywikibot.IsNotRedirectPage):
+            with self.assertRaises(IsNotRedirectPageError):
                 mysite.getredirtarget(mainpage)
         a = list(mysite.preloadpages([mainpage]))
         self.assertLength(a, int(mainpage.exists()))
@@ -603,7 +609,7 @@ class TestSiteGenerators(DefaultSiteTestCase):
             self.assertGreaterEqual(page.title(with_ns=False), 'From')
             self.assertTrue(hasattr(page, '_fromid'))
         errgen = mysite.alllinks(unique=True, fromids=True)
-        with self.assertRaises(pywikibot.Error):
+        with self.assertRaises(Error):
             next(errgen)
 
     def test_all_categories(self):
@@ -723,7 +729,7 @@ class TestSiteGenerators(DefaultSiteTestCase):
         mysite = self.get_site()
         try:
             unwatchedpages = list(mysite.unwatchedpages(total=10))
-        except api.APIError as error:
+        except APIError as error:
             if error.code in ('specialpage-cantexecute',
                               'gqpspecialpage-cantexecute'):
                 # User must have correct permissions to use
@@ -968,7 +974,7 @@ class TestLockingPage(DefaultSiteTestCase):
         p1 = pywikibot.Page(site, 'Foo')
 
         site.lock_page(page=p1, block=True)
-        with self.assertRaises(pywikibot.site.PageInUse):
+        with self.assertRaises(PageInUseError):
             site.lock_page(page=p1, block=False)
         site.unlock_page(page=p1)
         # verify it's unlocked
@@ -1451,7 +1457,7 @@ class SearchTestCase(DefaultSiteTestCase):
             for hit in mysite.search('wiki', namespaces=0, total=10):
                 self.assertIsInstance(hit, pywikibot.Page)
                 self.assertEqual(hit.namespace(), 0)
-        except pywikibot.data.api.APIError as e:
+        except APIError as e:
             if e.code == 'gsrsearch-error' and 'timed out' in e.info:
                 self.skipTest('gsrsearch returned timeout on site{}:\n{!r}'
                               .format(mysite, e))
@@ -1483,7 +1489,7 @@ class SearchTestCase(DefaultSiteTestCase):
             for hit in search_gen:
                 self.assertIsInstance(hit, pywikibot.Page)
                 self.assertEqual(hit.namespace(), 0)
-        except pywikibot.data.api.APIError as e:
+        except APIError as e:
             if e.code in ('search-title-disabled', 'gsrsearch-title-disabled'):
                 self.skipTest(
                     'Title search disabled on site: {0}'.format(self.site))
@@ -2154,7 +2160,7 @@ class TestSiteSysopWrite(TestCase):
             site.undelete(p, 'pywikibot unit tests')
 
         site.delete(p, reason='pywikibot unit tests')
-        with self.assertRaises(pywikibot.NoPage):
+        with self.assertRaises(NoPageError):
             p.get(force=True)
 
         site.undelete(p, 'pywikibot unit tests',
@@ -2532,7 +2538,7 @@ class TestSiteLoadRevisions(TestCase):
         self.mysite.loadrevisions(self.mainpage, revids='140001')
         self.assertIn(140001, self.mainpage._revisions)
         # revids belonging to a different page raises Exception
-        with self.assertRaises(pywikibot.Error):
+        with self.assertRaises(Error):
             self.mysite.loadrevisions(self.mainpage,
                                       revids=130000)
 
@@ -3354,9 +3360,9 @@ class TestSubdomainFamilySite(TestCase):
             site.family.hostname('wow')
         with self.assertRaises(KeyError):
             site.family.hostname('wowwiki')
-        with self.assertRaises(pywikibot.UnknownSite):
+        with self.assertRaises(UnknownSiteError):
             pywikibot.Site('wowwiki', 'wowwiki')
-        with self.assertRaises(pywikibot.UnknownSite):
+        with self.assertRaises(UnknownSiteError):
             pywikibot.Site('ceb', 'wowwiki')
 
 
@@ -3403,7 +3409,7 @@ class TestProductionAndTestSite(AlteredDefaultSiteTestCase):
         self.assertEqual(site2.code, 'beta')
         self.assertFalse(site2.obsolete)
 
-        with self.assertRaises(pywikibot.UnknownSite):
+        with self.assertRaises(UnknownSiteError):
             pywikibot.Site()
 
     def test_wikidata(self):
@@ -3425,7 +3431,7 @@ class TestProductionAndTestSite(AlteredDefaultSiteTestCase):
         self.assertEqual(site2.code, 'test')
 
         # Languages can't be used due to T71255
-        with self.assertRaises(pywikibot.UnknownSite):
+        with self.assertRaises(UnknownSiteError):
             pywikibot.Site('en', 'wikidata')
 
 
@@ -3463,13 +3469,13 @@ class TestSiteProofreadinfo(DefaultSiteTestCase):
     def test_cache_proofreadinfo_on_site_without_proofreadpage(self):
         """Test Site._cache_proofreadinfo()."""
         site = self.get_site('en-wp')
-        with self.assertRaises(pywikibot.UnknownExtension):
+        with self.assertRaises(UnknownExtensionError):
             site._cache_proofreadinfo()
-        with self.assertRaises(pywikibot.UnknownExtension):
+        with self.assertRaises(UnknownExtensionError):
             site.proofread_index_ns
-        with self.assertRaises(pywikibot.UnknownExtension):
+        with self.assertRaises(UnknownExtensionError):
             site.proofread_page_ns
-        with self.assertRaises(pywikibot.UnknownExtension):
+        with self.assertRaises(UnknownExtensionError):
             site.proofread_levels
 
 
@@ -3600,7 +3606,7 @@ class TestLoginLogout(DefaultSiteTestCase):
         self.assertIsNone(site.login())
 
         if site.is_oauth_token_available():
-            with self.assertRaisesRegex(api.APIError, 'cannotlogout.*OAuth'):
+            with self.assertRaisesRegex(APIError, 'cannotlogout.*OAuth'):
                 site.logout()
             self.assertTrue(site.logged_in())
             self.assertIn(site._loginstatus, (loginstatus.IN_PROGRESS,

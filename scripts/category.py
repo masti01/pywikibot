@@ -121,14 +121,12 @@ import math
 import os
 import pickle
 import re
-from textwrap import fill
-
 from contextlib import suppress
 from operator import methodcaller
+from textwrap import fill
 from typing import Optional
 
 import pywikibot
-
 from pywikibot import config, i18n, pagegenerators, textlib
 from pywikibot.backports import Set, Tuple
 from pywikibot.bot import (
@@ -141,6 +139,12 @@ from pywikibot.bot import (
     suggest_help,
 )
 from pywikibot.cosmetic_changes import moved_links
+from pywikibot.exceptions import (
+    Error,
+    NoPageError,
+    NoUsernameError,
+    PageSaveRelatedError,
+)
 from pywikibot.tools import deprecated_args, open_archive
 from pywikibot.tools.formatter import color_format
 
@@ -506,7 +510,7 @@ class CategoryAddBot(MultipleSitesBot, CategoryPreprocess):
             try:
                 self.userPut(self.current_page, old_text, text,
                              summary=comment)
-            except pywikibot.PageSaveRelatedError as error:
+            except PageSaveRelatedError as error:
                 pywikibot.output('Page {} not saved: {}'
                                  .format(self.current_page.title(as_link=True),
                                          error))
@@ -602,7 +606,7 @@ class CategoryMoveRobot(CategoryPreprocess):
             repo = self.site.data_repository()
             if self.wikibase and repo.username() is None:
                 # The bot can't move categories nor update the Wikibase repo
-                raise pywikibot.NoUsername(
+                raise NoUsernameError(
                     "The 'wikibase' option is turned on and {0} has no "
                     'registered username.'.format(repo))
 
@@ -849,7 +853,7 @@ class CategoryMoveRobot(CategoryPreprocess):
         if self.oldcat.exists():
             try:
                 item = pywikibot.ItemPage.fromPage(self.oldcat)
-            except pywikibot.NoPage:
+            except NoPageError:
                 item = None
             if item and item.exists():
                 cat_name_only = self.newcat.title(with_ns=False)
@@ -1080,7 +1084,7 @@ class CategoryTidyRobot(Bot, CategoryPreprocess):
         # determine a reasonable amount of context.
         try:
             full_text = member.get()
-        except pywikibot.NoPage:
+        except NoPageError:
             pywikibot.output('Page {} not found.'.format(member.title()))
             return
 
@@ -1498,7 +1502,7 @@ def main(*args: Tuple[str, ...]) -> None:
         suggest_help(unknown_parameters=unknown)
         try:
             bot.run()
-        except pywikibot.Error:
+        except Error:
             pywikibot.error('Fatal error:', exc_info=True)
         finally:
             if cat_db:

@@ -38,19 +38,18 @@ import re
 import stat
 import sys
 import types
-
 from locale import getdefaultlocale
-from os import getenv, environ
+from os import environ, getenv
 from pathlib import Path
 from textwrap import fill
 from typing import Optional, Union
 from warnings import warn
-from zipfile import is_zipfile, ZipFile
+from zipfile import ZipFile, is_zipfile
 
 from pywikibot.__metadata__ import __version__ as pwb_version
-from pywikibot.backports import Dict, List, removesuffix, Tuple
+from pywikibot.backports import Dict, List, Tuple, removesuffix
 from pywikibot.logging import error, output, warning
-from pywikibot.tools import issue_deprecation_warning, deprecated
+from pywikibot.tools import deprecated, issue_deprecation_warning
 
 
 OSWIN32 = (sys.platform == 'win32')
@@ -435,7 +434,7 @@ def register_families_folder(folder_path: str):
 
 
 # Get the names of all known families, and initialize with empty dictionaries.
-# ‘families/’ is a subdirectory of the directory in which config2.py is found.
+# ‘families/’ is a subdirectory of the directory in which config.py is found.
 register_families_folder(os.path.join(os.path.dirname(__file__), 'families'))
 
 # Set to True to override the {{bots}} exclusion protocol (at your own risk!)

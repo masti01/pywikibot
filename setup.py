@@ -35,6 +35,7 @@ import sys
 from pkg_resources import parse_version, safe_version
 from setuptools import setup
 
+
 PYTHON_VERSION = sys.version_info[:3]
 
 VERSIONS_REQUIRED_MESSAGE = """
@@ -119,7 +120,7 @@ test_deps = ['mock']
 # to set the console font and copy and paste, achieved using pywinauto
 # which depends on pywin32.
 # These tests may be disabled because pywin32 depends on VC++, is time
-# consuming to build, and the console window can't be accessed during appveyor
+# consuming to build, and the console window can't be accessed during AppVeyor
 # builds.
 if os.name == 'nt' and os.environ.get('PYSETUP_TEST_NO_UI', '0') != '1':
     test_deps += [
@@ -167,7 +168,7 @@ def get_validated_version():  # pragma: no cover
 
     # validate version for sdist
     from contextlib import suppress
-    from subprocess import run, PIPE
+    from subprocess import PIPE, run
     try:
         tags = run(['git', 'tag'], check=True, stdout=PIPE,
                    universal_newlines=True).stdout.splitlines()

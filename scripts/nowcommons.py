@@ -50,16 +50,17 @@ Please fix these if you are capable and motivated:
 #
 # Distributed under the terms of the MIT license.
 #
-from itertools import chain
 import sys
+from itertools import chain
 
 import pywikibot
 from pywikibot import Bot, i18n
 from pywikibot import pagegenerators as pg
+from pywikibot.exceptions import IsRedirectPageError, NoPageError
 from pywikibot.tools import filter_unique
 from pywikibot.tools.formatter import color_format
-
 from scripts.image import ImageRobot as ImageBot
+
 
 nowcommons = {
     '_default': [
@@ -358,7 +359,7 @@ class NowCommonsDeleteBot(Bot):
                     else:
                         pywikibot.output('The file is not identical to '
                                          'the one on Commons.')
-            except (pywikibot.NoPage, pywikibot.IsRedirectPage) as e:
+            except (NoPageError, IsRedirectPageError) as e:
                 pywikibot.output('{0}'.format(e[0]))
                 continue
             else:

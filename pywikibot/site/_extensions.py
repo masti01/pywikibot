@@ -6,10 +6,13 @@
 #
 import pywikibot
 import pywikibot.family
-
 from pywikibot.data import api
 from pywikibot.echo import Notification
-from pywikibot.exceptions import InconsistentTitleReceived, SiteDefinitionError
+from pywikibot.exceptions import (
+    APIError,
+    InconsistentTitleError,
+    SiteDefinitionError,
+)
 from pywikibot.site._decorators import need_extension, need_right
 from pywikibot.tools import deprecate_arg, deprecated_args, merge_unique_dicts
 
@@ -208,7 +211,7 @@ class GlobalUsageMixin:
         for pageitem in query:
             if not self.sametitle(pageitem['title'],
                                   page.title(with_section=False)):
-                raise InconsistentTitleReceived(page, pageitem['title'])
+                raise InconsistentTitleError(page, pageitem['title'])
 
             api.update_page(page, pageitem, query.props)
 
@@ -319,7 +322,7 @@ class ThanksMixin:
                                    source=source)
         data = req.submit()
         if data['result']['success'] != 1:
-            raise api.APIError('Thanking unsuccessful', '')
+            raise APIError('Thanking unsuccessful', '')
         return data
 
 
@@ -343,7 +346,7 @@ class ThanksFlowMixin:
                                    postid=post_id, token=token)
         data = req.submit()
         if data['result']['success'] != 1:
-            raise api.APIError('Thanking unsuccessful', '')
+            raise APIError('Thanking unsuccessful', '')
         return data
 
 

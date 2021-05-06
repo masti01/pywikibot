@@ -23,8 +23,8 @@
 import os
 import re
 import sys
-
 from os.path import abspath, dirname, join
+
 
 docs_dir = dirname(__file__)
 repo_dir = abspath(join(docs_dir, '..'))
@@ -33,6 +33,7 @@ os.chdir(repo_dir)
 
 os.environ['PYWIKIBOT_NO_USER_CONFIG'] = '1'
 import pywikibot  # noqa: E402
+
 
 # -- General configuration ------------------------------------------------
 
@@ -398,7 +399,7 @@ def pywikibot_epytext_to_sphinx(app, what, name, obj, options, lines):
 
 def pywikibot_docstring_fixups(app, what, name, obj, options, lines):
     """Fixup docstrings."""
-    if what != 'class':
+    if what not in ('class', 'exception'):
         return
 
     if lines and lines[0] == 'Initializer.':

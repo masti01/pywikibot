@@ -7,15 +7,13 @@
 import os
 import sys
 import unittest
-
 from contextlib import suppress
 
 from pywikibot.tools import has_module
-
 from tests import join_root_path, unittest_print
-from tests.aspects import (DefaultSiteTestCase, MetaTestCaseClass,
-                           PwbTestCase)
+from tests.aspects import DefaultSiteTestCase, MetaTestCaseClass, PwbTestCase
 from tests.utils import execute_pwb
+
 
 scripts_path = join_root_path('scripts')
 
@@ -83,6 +81,7 @@ auto_run_script_list = [
     'misspelling',
     'revertbot',
     'noreferences',
+    'nowcommons',
     'parser_function_count',
     'patrol',
     'shell',
@@ -103,7 +102,6 @@ no_args_expected_results = {
     # script_input['interwiki'] above lists a title that should not exist
     'interwiki': 'does not exist. Skipping.',
     'login': 'Logged in on ',
-    'nowcommons': 'No transcluded files found for NowCommons.',
     'pagefromfile': 'Please enter the file name',
     'parser_function_count': 'Hold on, this will need some time.',
     'replace': 'Press Enter to use this automatic message',

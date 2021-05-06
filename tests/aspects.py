@@ -17,34 +17,38 @@ import sys
 import time
 import unittest
 import warnings
-
-from contextlib import contextmanager, suppress
 from collections.abc import Sized
+from contextlib import contextmanager, suppress
 from http import HTTPStatus
 from unittest.util import safe_repr
 
 import pywikibot
-
-import pywikibot.config2 as config
-
-from pywikibot import Site
-
+from pywikibot import Site, config
 from pywikibot.backports import removeprefix
 from pywikibot.comms import http
 from pywikibot.data.api import Request as _original_Request
-from pywikibot.exceptions import ServerError, NoUsername
+from pywikibot.exceptions import (
+    NoUsernameError,
+    ServerError,
+    SiteDefinitionError,
+)
 from pywikibot.family import WikimediaFamily
 from pywikibot.site import BaseSite
 from pywikibot.tools import suppress_warnings
-
 from tests import (
-    WARN_SITE_CODE, patch_request, unpatch_request, unittest_print
+    WARN_SITE_CODE,
+    patch_request,
+    unittest_print,
+    unpatch_request,
+)
+from tests.utils import (
+    AssertAPIErrorContextManager,
+    DryRequest,
+    DrySite,
+    WarningSourceSkipContextManager,
+    execute_pwb,
 )
 
-from tests.utils import (
-    execute_pwb, DrySite, DryRequest,
-    WarningSourceSkipContextManager, AssertAPIErrorContextManager,
-)
 
 try:
     import pytest_httpbin
@@ -356,7 +360,7 @@ class SiteNotPermitted(pywikibot.site.BaseSite):
 
     def __init__(self, code, fam=None, user=None):
         """Initializer."""
-        raise pywikibot.SiteDefinitionError(
+        raise SiteDefinitionError(
             'Loading site {}:{} during dry test not permitted'
             .format(fam, code))
 
@@ -500,7 +504,7 @@ class SiteWriteMixin(TestCaseBase):
         """
         if issubclass(cls, ForceCacheMixin):
             raise Exception(
-                '{} can not be a subclass of both '
+                '{} cannot be a subclass of both '
                 'SiteWriteMixin and ForceCacheMixin'
                 .format(cls.__name__))
 
@@ -567,7 +571,7 @@ class RequireLoginMixin(TestCaseBase):
                     'Site {} has readonly state: {}'.format(
                         site, site.siteinfo.get('readonlyreason', '')))
 
-            with suppress(NoUsername):
+            with suppress(NoUsernameError):
                 site.login()
 
             if not site.user():

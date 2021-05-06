@@ -31,11 +31,9 @@ The following generators and filters are supported:
 #
 import pywikibot
 from pywikibot import i18n, pagegenerators
-
-from pywikibot.bot import (MultipleSitesBot, ExistingPageBot,
-                           NoRedirectPageBot)
-
+from pywikibot.bot import ExistingPageBot, MultipleSitesBot, NoRedirectPageBot
 from pywikibot.tools.formatter import color_format
+
 
 # This is required for the text that is shown when you run this script
 # with the parameter -help.

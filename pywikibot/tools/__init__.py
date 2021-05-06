@@ -10,7 +10,6 @@ import hashlib
 import inspect
 import itertools
 import os
-import pkg_resources
 import queue
 import re
 import stat
@@ -19,9 +18,8 @@ import sys
 import threading
 import time
 import types
-
-from collections.abc import Container, Iterable, Iterator, Mapping, Sized
 from collections import defaultdict
+from collections.abc import Container, Iterable, Iterator, Mapping, Sized
 from contextlib import suppress
 from datetime import datetime
 from functools import wraps
@@ -32,8 +30,11 @@ from itertools import chain, zip_longest
 from typing import Optional
 from warnings import catch_warnings, showwarning, warn
 
+import pkg_resources
+
 from pywikibot.logging import debug
 from pywikibot.tools._unidata import _first_upper_exception
+
 
 try:
     import bz2
@@ -1936,3 +1937,7 @@ wrapper._add_deprecated_attr('frozenmap',
                              replacement_name='types.MappingProxyType',
                              since='20210415',
                              future_warning=True)
+wrapper._add_deprecated_attr('LazyRegex', replacement_name='',
+                             since='20210418', future_warning=True)
+wrapper._add_deprecated_attr('DeprecatedRegex', replacement_name='',
+                             since='20210418', future_warning=True)

@@ -14,17 +14,29 @@ Can be used with:
 # Distributed under the terms of the MIT license.
 #
 import re
-
 from contextlib import suppress
 
 import pywikibot
 from pywikibot import pagegenerators
-from pywikibot.bot import (SingleSiteBot, ExistingPageBot, NoRedirectPageBot,
-                           AutomaticTWSummaryBot, suggest_help)
-from pywikibot.exceptions import InvalidTitle
+from pywikibot.bot import (
+    AutomaticTWSummaryBot,
+    ExistingPageBot,
+    NoRedirectPageBot,
+    SingleSiteBot,
+    suggest_help,
+)
+from pywikibot.exceptions import (
+    CircularRedirectError,
+    InterwikiRedirectPageError,
+    InvalidPageError,
+    InvalidTitleError,
+    NoMoveTargetError,
+)
 from pywikibot.textlib import does_text_contain_section, isDisabled
+from pywikibot.tools import first_lower
+from pywikibot.tools import first_upper as firstcap
 from pywikibot.tools.formatter import color_format
-from pywikibot.tools import first_lower, first_upper as firstcap
+
 
 # This is required for the text that is shown when you run this script
 # with the parameter -help.
@@ -70,7 +82,7 @@ class FixingRedirectBot(SingleSiteBot, ExistingPageBot, NoRedirectPageBot,
             # Check whether the link found is to page.
             try:
                 actualLinkPage.title()
-            except InvalidTitle:
+            except InvalidTitleError:
                 pywikibot.exception()
                 continue
             if actualLinkPage != linkedPage:
@@ -133,16 +145,16 @@ class FixingRedirectBot(SingleSiteBot, ExistingPageBot, NoRedirectPageBot,
         """Get the target page for a given page."""
         target = None
         if not page.exists():
-            with suppress(pywikibot.NoMoveTarget,
-                          pywikibot.CircularRedirect,
-                          pywikibot.InvalidTitle):
+            with suppress(NoMoveTargetError,
+                          CircularRedirectError,
+                          InvalidTitleError):
                 target = page.moved_target()
         elif page.isRedirectPage():
             try:
                 target = page.getRedirectTarget()
-            except (pywikibot.CircularRedirect,
-                    pywikibot.InvalidTitle,
-                    pywikibot.InterwikiRedirectPage):
+            except (CircularRedirectError,
+                    InvalidTitleError,
+                    InterwikiRedirectPageError):
                 pass
             except RuntimeError:
                 pywikibot.exception()
@@ -160,7 +172,12 @@ class FixingRedirectBot(SingleSiteBot, ExistingPageBot, NoRedirectPageBot,
     def treat_page(self):
         """Change all redirects from the current page to actual links."""
         links = self.current_page.linkedPages()
-        newtext = self.current_page.text
+        try:
+            newtext = self.current_page.text
+        except InvalidPageError:
+            pywikibot.exception()
+            return
+
         i = None
         for i, page in enumerate(links):
             target = self.get_target(page)

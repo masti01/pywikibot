@@ -52,10 +52,15 @@ import re
 
 import pywikibot
 from pywikibot import config, i18n, pagegenerators, xmlreader
-
-from pywikibot.bot import (SingleSiteBot, ExistingPageBot, NoRedirectPageBot,
-                           suggest_help, input_yn)
+from pywikibot.bot import (
+    ExistingPageBot,
+    NoRedirectPageBot,
+    SingleSiteBot,
+    input_yn,
+    suggest_help,
+)
 from pywikibot.textlib import replaceExcept
+
 
 # This is required for the text that is shown when you run this script
 # with the parameter -help.

@@ -7,7 +7,6 @@
 import heapq
 import itertools
 import typing
-
 from contextlib import suppress
 from itertools import zip_longest
 from typing import Any, Optional, Union
@@ -15,14 +14,15 @@ from warnings import warn
 
 import pywikibot
 import pywikibot.family
-
 from pywikibot.backports import Dict, List
 from pywikibot.data import api
 from pywikibot.exceptions import (
+    APIError,
     Error,
-    InconsistentTitleReceived,
-    NoPage,
-    UserRightsError
+    InconsistentTitleError,
+    InvalidTitleError,
+    NoPageError,
+    UserRightsError,
 )
 from pywikibot.site._decorators import need_right, need_version
 from pywikibot.tools import (
@@ -147,7 +147,7 @@ class GeneratorsMixin:
                 try:
                     cache.setdefault(page.title(with_section=False),
                                      (priority, page))
-                except pywikibot.InvalidTitle:
+                except InvalidTitleError:
                     pywikibot.exception()
 
             prio_queue = []
@@ -637,7 +637,8 @@ class GeneratorsMixin:
         @keyword excludeuser: retrieve all revisions not authored by this user
         @keyword total: number of revisions to retrieve
         @raises ValueError: invalid startid/endid or starttime/endtime values
-        @raises pywikibot.Error: revids belonging to a different page
+        @raises pywikibot.exceptions.Error: revids belonging to a different
+            page
         """
         latest = all(val is None for val in kwargs.values())
 
@@ -721,9 +722,9 @@ class GeneratorsMixin:
         for pagedata in rvgen:
             if not self.sametitle(pagedata['title'],
                                   page.title(with_section=False)):
-                raise InconsistentTitleReceived(page, pagedata['title'])
+                raise InconsistentTitleError(page, pagedata['title'])
             if 'missing' in pagedata:
-                raise NoPage(page)
+                raise NoPageError(page)
             api.update_page(page, pagedata, rvgen.props)
 
     @deprecated_args(step=True)
@@ -742,7 +743,7 @@ class GeneratorsMixin:
                                   total=total)
         for pageitem in llquery:
             if not self.sametitle(pageitem['title'], lltitle):
-                raise InconsistentTitleReceived(page, pageitem['title'])
+                raise InconsistentTitleError(page, pageitem['title'])
             if 'langlinks' not in pageitem:
                 continue
             for linkdata in pageitem['langlinks']:
@@ -766,7 +767,7 @@ class GeneratorsMixin:
                                   total=total)
         for pageitem in elquery:
             if not self.sametitle(pageitem['title'], eltitle):
-                raise InconsistentTitleReceived(page, pageitem['title'])
+                raise InconsistentTitleError(page, pageitem['title'])
             if 'extlinks' not in pageitem:
                 continue
             for linkdata in pageitem['extlinks']:
@@ -1786,7 +1787,7 @@ class GeneratorsMixin:
 
             try:
                 result = req.submit()
-            except api.APIError as err:
+            except APIError as err:
                 # patrol is disabled, store in attr to avoid other requests
                 if err.code == 'patroldisabled':
                     self._patroldisabled = True
