@@ -11,7 +11,6 @@ import math
 import re
 import threading
 import time
-
 from contextlib import suppress
 from decimal import Decimal
 from queue import Queue
@@ -48,8 +47,8 @@ from pywikibot.bot import (
 )
 from pywikibot.diff import PatchManager
 from pywikibot.exceptions import (
-    CoordinateGlobeUnknownError,
     DEPRECATED_EXCEPTIONS,
+    CoordinateGlobeUnknownError,
 )
 from pywikibot.family import AutoFamily, Family
 from pywikibot.i18n import translate
@@ -67,8 +66,9 @@ from pywikibot.site import APISite, BaseSite, ClosedSite, DataSite
 from pywikibot.tools import (
     ModuleDeprecationWrapper as _ModuleDeprecationWrapper,
 )
-from pywikibot.tools import classproperty, normalize_username
+from pywikibot.tools import classproperty
 from pywikibot.tools import deprecate_arg as _deprecate_arg
+from pywikibot.tools import normalize_username
 from pywikibot.tools.formatter import color_format
 
 
@@ -137,7 +137,7 @@ class Timestamp(datetime.datetime):
         @return: ISO8601 format string
         """
         assert len(sep) == 1
-        return '%Y-%m-%d{0}%H:%M:%SZ'.format(sep)
+        return '%Y-%m-%d{}%H:%M:%SZ'.format(sep)
 
     @classmethod
     def fromISOformat(cls, ts, sep: str = 'T'):
@@ -257,8 +257,8 @@ class Coordinate(_WbRepresentation):
         if not self._entity:
             if self.globe not in self.site.globes():
                 raise CoordinateGlobeUnknownError(
-                    '%s is not supported in Wikibase yet.'
-                    % self.globe)
+                    '{} is not supported in Wikibase yet.'
+                    .format(self.globe))
             return self.site.globes()[self.globe]
 
         if isinstance(self._entity, ItemPage):
@@ -504,7 +504,8 @@ class WbTime(_WbRepresentation):
             if site is None:
                 site = Site().data_repository()
                 if site is None:
-                    raise ValueError('Site %s has no data repository' % Site())
+                    raise ValueError('Site {} has no data repository'
+                                     .format(Site()))
             calendarmodel = site.calendarmodel()
         self.calendarmodel = calendarmodel
 
@@ -516,7 +517,7 @@ class WbTime(_WbRepresentation):
             elif precision in self.PRECISION:
                 self.precision = self.PRECISION[precision]
             else:
-                raise ValueError('Invalid precision: "%s"' % precision)
+                raise ValueError('Invalid precision: "{}"'.format(precision))
 
     @classmethod
     def fromTimestr(cls,
@@ -551,7 +552,7 @@ class WbTime(_WbRepresentation):
         match = re.match(r'([-+]?\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z',
                          datetimestr)
         if not match:
-            raise ValueError("Invalid format: '%s'" % datetimestr)
+            raise ValueError("Invalid format: '{}'".format(datetimestr))
         t = match.groups()
         return cls(int(t[0]), int(t[1]), int(t[2]),
                    int(t[3]), int(t[4]), int(t[5]),
@@ -903,10 +904,10 @@ class _WbDataPage(_WbRepresentation):
         # validate page is on the right site, and that site supports the type
         if not data_site:
             raise ValueError(
-                'The provided site does not support {0}.'.format(label))
+                'The provided site does not support {}.'.format(label))
         if page.site != data_site:
             raise ValueError(
-                'Page must be on the {0} repository site.'.format(label))
+                'Page must be on the {} repository site.'.format(label))
 
         # validate page title fulfills hard-coded Wikibase requirement
         # pcre regexp: '/^Data:[^\\[\\]#\\\:{|}]+\.map$/u' for geo-shape
@@ -916,8 +917,8 @@ class _WbDataPage(_WbRepresentation):
         if not page.title().startswith('Data:') \
            or not page.title().endswith(ending):
             raise ValueError(
-                "Page must be in 'Data:' namespace and end in '{0}' "
-                'for {1}.'.format(ending, label))
+                "Page must be in 'Data:' namespace and end in '{}' "
+                'for {}.'.format(ending, label))
 
     def __init__(self, page, site: Optional[DataSite] = None):
         """
@@ -1096,12 +1097,49 @@ def Site(code: Optional[str] = None, fam=None, user: Optional[str] = None, *,
     By default rely on config settings. These defaults may all be overridden
     using the method parameters.
 
+    Creating the default site using config.mylang and config.family::
+
+        site = pywikibot.Site()
+
+    Override default site code::
+
+        site = pywikibot.Site('fr')
+
+    Override default family::
+
+        site = pywikibot.Site(family='wikisource')
+
+    Setting a specific site::
+
+        site = pywikibot.Site('fr', 'wikisource')
+
+    which is equal to::
+
+        site = pywikibot.Site('wikisource:fr')
+
+    :Note: An already created site is cached an a new variable points to
+        the same object if interface, family, code and user are equal:
+
+    >>> import pywikibot
+    >>> site_1 = pywikibot.Site('wikisource:fr')
+    >>> site_2 = pywikibot.Site('fr', 'wikisource')
+    >>> site_1 is site_2
+    True
+    >>> site_1
+    APISite("fr", "wikisource")
+
+    C{APISite} is the default interface. Refer L{pywikibot.site} for
+    other interface types.
+
+    **Never create a site object via interface class directly.**
+    Always use this factory method.
+
     @param code: language code (override config.mylang)
         code may also be a sitename like 'wikipedia:test'
     @param fam: family name or object (override config.family)
     @type fam: str or pywikibot.family.Family
     @param user: bot user name to use on this site (override config.usernames)
-    @param interface: site class or name of class in pywikibot.site
+    @param interface: site class or name of class in L{pywikibot.site}
         (override config.site_interface)
     @type interface: subclass of L{pywikibot.site.BaseSite} or string
     @param url: Instead of code and fam, does try to get a Site based on the
@@ -1148,23 +1186,23 @@ def Site(code: Optional[str] = None, fam=None, user: Optional[str] = None, *,
         try:
             tmp = __import__('pywikibot.site', fromlist=[interface])
         except ImportError:
-            raise ValueError('Invalid interface name: {0}'.format(interface))
+            raise ValueError('Invalid interface name: {}'.format(interface))
         else:
             interface = getattr(tmp, interface)
 
     if not issubclass(interface, BaseSite):
-        warning('Site called with interface=%s' % interface.__name__)
+        warning('Site called with interface={}'.format(interface.__name__))
 
     user = normalize_username(user)
-    key = '%s:%s:%s:%s' % (interface.__name__, fam, code, user)
+    key = '{}:{}:{}:{}'.format(interface.__name__, fam, code, user)
     if key not in _sites or not isinstance(_sites[key], interface):
         _sites[key] = interface(code=code, fam=fam, user=user)
-        debug("Instantiated %s object '%s'"
-              % (interface.__name__, _sites[key]), _logger)
+        debug("Instantiated {} object '{}'"
+              .format(interface.__name__, _sites[key]), _logger)
 
         if _sites[key].code != code:
-            warn('Site %s instantiated using different code "%s"'
-                 % (_sites[key], code), UserWarning, 2)
+            warn('Site {} instantiated using different code "{}"'
+                 .format(_sites[key], code), UserWarning, 2)
 
     return _sites[key]
 
