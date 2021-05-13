@@ -656,11 +656,17 @@ class Family:
         self._get_cr_templates(code, fallback)
 
     def get_edit_restricted_templates(self, code):
-        """Return tuple of edit restricted templates."""
+        """Return tuple of edit restricted templates.
+
+        *New in version 3.0.*
+        """
         return self.edit_restricted_templates.get(code, ())
 
     def get_archived_page_templates(self, code):
-        """Return tuple of archived page templates."""
+        """Return tuple of archived page templates.
+
+        *New in version 3.0.*
+        """
         return self.archived_page_templates.get(code, ())
 
     def disambig(self, code, fallback='_default'):
@@ -691,22 +697,13 @@ class Family:
         """
         Return whether a HTTPS certificate should be verified.
 
+        *Renamed in version 5.3.*
+
         @param code: language code
         @return: flag to verify the SSL certificate;
                  set it to False to allow access if certificate has an error.
         """
         return True
-
-    @deprecated('verify_SSL_certificate', since='20201013',
-                future_warning=True)
-    def ignore_certificate_error(self, code: str) -> bool:
-        """
-        Return whether a HTTPS certificate error should be ignored.
-
-        @param code: language code
-        @return: flag to allow access if certificate has an error.
-        """
-        return not self.verify_SSL_certificate
 
     def hostname(self, code):
         """The hostname to use for standard http connections."""
@@ -776,11 +773,17 @@ class Family:
         return '{}/api.php'.format(self.scriptpath(code))
 
     def eventstreams_host(self, code):
-        """Hostname for EventStreams."""
+        """Hostname for EventStreams.
+
+        *New in version 3.0.*
+        """
         raise NotImplementedError('This family does not support EventStreams')
 
     def eventstreams_path(self, code):
-        """Return path for EventStreams."""
+        """Return path for EventStreams.
+
+        *New in version 3.0.*
+        """
         raise NotImplementedError('This family does not support EventStreams')
 
     @deprecated_args(name='title')
@@ -847,7 +850,7 @@ class Family:
         else:
             return None
 
-        matched_sites = []
+        matched_sites = set()
         for code in chain(self.codes,
                           getattr(self, 'test_codes', ()),
                           getattr(self, 'closed_wikis', ()),
@@ -860,11 +863,11 @@ class Family:
 
                 for iw_url in site._interwiki_urls():
                     if path.startswith(iw_url):
-                        matched_sites += [site]
+                        matched_sites.add(site)
                         break
 
         if len(matched_sites) == 1:
-            return matched_sites[0].code
+            return matched_sites.pop().code
 
         if not matched_sites:
             return None
@@ -1056,7 +1059,10 @@ class SubdomainFamily(Family):
 
 class FandomFamily(Family):
 
-    """Common features of Fandom families."""
+    """Common features of Fandom families.
+
+    *Renamed in version 3.0.*
+    """
 
     @classproperty
     def langs(cls):

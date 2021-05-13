@@ -72,7 +72,7 @@ from pywikibot.tools import (
     deprecated,
     deprecated_args,
     first_upper,
-    is_IP,
+    is_ip_address,
     redirect_func,
     remove_last_args,
 )
@@ -310,8 +310,8 @@ class BasePage(ComparableMixin):
                or (allow_interwiki
                    and (self.site.family.name != target_family
                         or self.site.code != target_code)):
-                if self.site.family.name != target_family \
-                   and self.site.family.name != self.site.code:
+                if self.site.family.name not in (
+                        target_family, self.site.code):
                     title = '{site.family.name}:{site.code}:{title}'.format(
                         site=self.site, title=title)
                 else:
@@ -1661,23 +1661,6 @@ class BasePage(ComparableMixin):
         return sum(cnt[user.username] if isinstance(user, User) else cnt[user]
                    for user in contributors)
 
-    @deprecated('contributors() or revisions()', since='20150206',
-                future_warning=True)
-    @deprecated_args(limit='total')  # pragma: no cover
-    def getLatestEditors(self, total=1) -> list:
-        """
-        Get a list of revision information of the last total edits.
-
-        DEPRECATED: Use Page.revisions.
-
-        @param total: iterate no more than this number of revisions in total
-        @return: list of dict, each dict containing the username and Timestamp
-        """
-        return [
-            {'user': rev.user,
-             'timestamp': rev.timestamp.isoformat()}
-            for rev in self.revisions(total=total)]
-
     def merge_history(self, dest, timestamp=None, reason=None):
         """
         Merge revisions from this page into another page.
@@ -1781,7 +1764,10 @@ class BasePage(ComparableMixin):
                     self.save(summary=reason)
 
     def has_deleted_revisions(self) -> bool:
-        """Return True if the page has deleted revisions."""
+        """Return True if the page has deleted revisions.
+
+        *New in version 4.2.*
+        """
         if not hasattr(self, '_has_deleted_revisions'):
             gen = self.site.deletedrevs(self, total=1, prop=['ids'])
             self._has_deleted_revisions = bool(list(gen))
@@ -1824,7 +1810,7 @@ class BasePage(ComparableMixin):
         for item in self.site.deletedrevs(self, start=timestamp,
                                           content=content, total=1, **kwargs):
             # should only be one item with one revision
-            if item['title'] == self.title:
+            if item['title'] == self.title():
                 if 'revisions' in item:
                     return item['revisions'][0]
         return []
@@ -2195,6 +2181,8 @@ class Page(BasePage):
 
         Return the first 'preferred' ranked Claim specified by Wikibase
         property or the first 'normal' one otherwise.
+
+        *New in version 3.0.*
 
         @param prop: property id, "P###"
         @return: Claim object given by Wikibase property number
@@ -2830,15 +2818,6 @@ class User(Page):
             pywikibot.output(
                 'This is an autoblock ID, you can only use to unblock it.')
 
-    @deprecated('User.username', since='20160504', future_warning=True)
-    def name(self) -> str:  # pragma: no cover
-        """
-        The username.
-
-        DEPRECATED: use username instead.
-        """
-        return self.username
-
     @property
     def username(self) -> str:
         """
@@ -2869,7 +2848,7 @@ class User(Page):
 
     def isAnonymous(self) -> bool:
         """Determine if the user is editing as an IP address."""
-        return is_IP(self.username)
+        return is_ip_address(self.username)
 
     def getprops(self, force: bool = False) -> dict:
         """
@@ -3146,6 +3125,8 @@ class User(Page):
         self, *, total: int = 500, **kwargs
     ) -> Iterable[Tuple[Page, Revision]]:
         """Yield tuples describing this user's deleted edits.
+
+        *New in version 5.5.*
 
         @param total: Limit results to this number of pages
         @keyword start: Iterate contributions starting at this Timestamp
@@ -5566,6 +5547,8 @@ class SiteLink(BaseLink):
     Extends BaseLink by the following attribute:
 
       - badges: Any badges associated with the sitelink
+
+    *New in version 3.0.*
     """
 
     # Components used for __repr__

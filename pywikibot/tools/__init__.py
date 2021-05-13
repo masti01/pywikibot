@@ -8,6 +8,7 @@ import collections
 import gzip
 import hashlib
 import inspect
+import ipaddress
 import itertools
 import os
 import queue
@@ -25,7 +26,6 @@ from datetime import datetime
 from functools import wraps
 from importlib import import_module
 from inspect import getfullargspec
-from ipaddress import ip_address
 from itertools import chain, zip_longest
 from typing import Optional
 from warnings import catch_warnings, showwarning, warn
@@ -61,25 +61,24 @@ class _NotImplementedWarning(RuntimeWarning):
 
     """Feature that is no longer implemented."""
 
-    pass
 
+def is_ip_address(value: str) -> bool:
+    """Check if a value is a valid IPv4 or IPv6 address.
 
-def is_IP(IP: str) -> bool:  # noqa N802, N803
-    """Verify the IP address provided is valid.
-
-    No logging is performed. Use ip_address instead to catch errors.
-
-    @param IP: IP address
+    @param value: value to check
     """
     with suppress(ValueError):
-        ip_address(IP)
+        ipaddress.ip_address(value)
         return True
 
     return False
 
 
 def has_module(module, version=None):
-    """Check if a module can be imported."""
+    """Check if a module can be imported.
+
+    *New in version 3.0.*
+    """
     try:
         m = import_module(module)
     except ImportError:
@@ -102,7 +101,7 @@ def has_module(module, version=None):
 
 def empty_iterator():
     # http://stackoverflow.com/a/13243870/473890
-    """An iterator which does nothing."""
+    """DEPRECATED. An iterator which does nothing."""
     return
     yield
 
@@ -141,6 +140,8 @@ class suppress_warnings(catch_warnings):  # noqa: N801
 
     Those suppressed warnings that do not match the parameters will be raised
     shown upon exit.
+
+    *New in vesion 3.0.*
     """
 
     def __init__(self, message='', category=Warning, filename=''):
@@ -223,7 +224,7 @@ class ComparableMixin:
 
 class DotReadableDict:
 
-    """Parent class of Revision() and FileInfo().
+    """DEPRECATED. Lecacy class of Revision() and FileInfo().
 
     Provide: __getitem__() and __repr__().
     """
@@ -246,7 +247,7 @@ class DotReadableDict:
 
 class frozenmap(Mapping):  # noqa:  N801
 
-    """Frozen mapping, preventing write after initialisation."""
+    """DEPRECATED. Frozen mapping, preventing write after initialisation."""
 
     def __init__(self, data=(), **kwargs):
         """Initialize data in same ways like a dict."""
@@ -310,6 +311,8 @@ class SizedKeyCollection(Container, Iterable, Sized):
         >>> data.clear()
         >>> list(data)
         []
+
+    *New in version 6.1.*
     """
 
     def __init__(self, keyattr: str):
@@ -386,7 +389,7 @@ class SizedKeyCollection(Container, Iterable, Sized):
 class LazyRegex:
 
     """
-    Regex object that obtains and compiles the regex on usage.
+    DEPRECATED. Regex object that obtains and compiles the regex on usage.
 
     Instances behave like the object created using L{re.compile}.
     """
@@ -449,7 +452,7 @@ class DeprecatedRegex(LazyRegex):
 
     def __init__(self, pattern, flags=0, name=None, instead=None, since=None):
         """
-        Initializer.
+        DEPRECATED. Deprecate a give regex.
 
         If name is None, the regex pattern will be used as part of
         the deprecation warning.
@@ -921,6 +924,8 @@ def roundrobin_generators(*iterables):
     >>> tuple(roundrobin_generators('ABC', range(5)))
     ('A', 0, 'B', 1, 'C', 2, 3, 4)
 
+    *New in version 3.0.*
+
     @param iterables: any iterable to combine in roundrobin way
     @type iterables: iterable
     @return: the combined generator of iterables
@@ -1049,14 +1054,10 @@ class SelfCallDict(SelfCallMixin, dict):
 
     """Dict with SelfCallMixin."""
 
-    pass
-
 
 class SelfCallString(SelfCallMixin, str):
 
     """String with SelfCallMixin."""
-
-    pass
 
 
 class DequeGenerator(Iterator, collections.deque):
@@ -1942,3 +1943,7 @@ wrapper._add_deprecated_attr('LazyRegex', replacement_name='',
                              since='20210418', future_warning=True)
 wrapper._add_deprecated_attr('DeprecatedRegex', replacement_name='',
                              since='20210418', future_warning=True)
+
+
+is_IP = redirect_func(is_ip_address, old_name='is_IP',  # noqa N816
+                      since='20210418')
