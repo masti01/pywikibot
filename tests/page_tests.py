@@ -31,7 +31,7 @@ from tests.aspects import (
 
 
 EMPTY_TITLE_RE = r'Title must be specified and not empty if source is a Site\.'
-INVALID_TITLE_RE = r'The link does not contain a page title'
+INVALID_TITLE_RE = r'The link \[\[.*\]\] does not contain a page title'
 NO_PAGE_RE = r"doesn't exist\."
 
 
@@ -326,14 +326,14 @@ class TestPageObject(DefaultSiteTestCase):
                 InvalidTitleError,
                 INVALID_TITLE_RE):
             page.title()
+
         page = pywikibot.page.BasePage(site, title='')
         with self.assertRaisesRegex(
                 InvalidTitleError,
                 INVALID_TITLE_RE):
             page.title()
-        with self.assertRaisesRegex(
-                ValueError,
-                'Title cannot be None.'):
+
+        with self.assertRaisesRegex(ValueError, 'Title cannot be None.'):
             pywikibot.page.BasePage(site, title=None)
 
     def testPageConstructor(self):
