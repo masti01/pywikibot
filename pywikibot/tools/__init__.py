@@ -22,11 +22,11 @@ import types
 from collections.abc import Container, Iterable, Iterator, Mapping, Sized
 from contextlib import suppress
 from datetime import datetime
-from functools import wraps
+from functools import total_ordering, wraps
 from importlib import import_module
 from inspect import getfullargspec
 from itertools import chain, zip_longest
-from typing import Optional
+from typing import Any, Optional
 from warnings import catch_warnings, showwarning, warn
 
 import pkg_resources
@@ -64,7 +64,7 @@ class _NotImplementedWarning(RuntimeWarning):
 def is_ip_address(value: str) -> bool:
     """Check if a value is a valid IPv4 or IPv6 address.
 
-    @param value: value to check
+    :param value: value to check
     """
     with suppress(ValueError):
         ipaddress.ip_address(value)
@@ -148,16 +148,16 @@ class suppress_warnings(catch_warnings):  # noqa: N801
         The parameter semantics are similar to those of
         `warnings.filterwarnings`.
 
-        @param message: A string containing a regular expression that the start
+        :param message: A string containing a regular expression that the start
             of the warning message must match. (case-insensitive)
-        @type message: str
-        @param category: A class (a subclass of Warning) of which the warning
+        :type message: str
+        :param category: A class (a subclass of Warning) of which the warning
             category must be a subclass in order to match.
-        @type category: type
-        @param filename: A string containing a regular expression that the
+        :type category: type
+        :param filename: A string containing a regular expression that the
             start of the path to the warning module must match.
             (case-sensitive)
-        @type filename: str
+        :type filename: str
         """
         self.message_match = re.compile(message, re.I).match
         self.category = category
@@ -316,7 +316,7 @@ class SizedKeyCollection(Container, Iterable, Sized):
     def __init__(self, keyattr: str):
         """Initializer.
 
-        @param keyattr: an attribute or method of the values to be hold
+        :param keyattr: an attribute or method of the values to be hold
             with this collection which will be used as key.
         """
         self.keyattr = keyattr
@@ -391,17 +391,17 @@ class LazyRegex:
     """
     DEPRECATED. Regex object that obtains and compiles the regex on usage.
 
-    Instances behave like the object created using L{re.compile}.
+    Instances behave like the object created using :py:obj:`re.compile`.
     """
 
     def __init__(self, pattern, flags=0):
         """
         Initializer.
 
-        @param pattern: L{re} regex pattern
-        @type pattern: str or callable
-        @param flags: L{re.compile} flags
-        @type flags: int
+        :param pattern: :py:obj:`re` regex pattern
+        :type pattern: str or callable
+        :param flags: :py:obj:`re.compile` flags
+        :type flags: int
         """
         self.raw = pattern
         self.flags = flags
@@ -457,11 +457,11 @@ class DeprecatedRegex(LazyRegex):
         If name is None, the regex pattern will be used as part of
         the deprecation warning.
 
-        @param name: name of the object that is deprecated
-        @type name: str or None
-        @param instead: if provided, will be used to specify the replacement
+        :param name: name of the object that is deprecated
+        :type name: str or None
+        :param instead: if provided, will be used to specify the replacement
             of the deprecated name
-        @type instead: str
+        :type instead: str
         """
         super().__init__(pattern, flags)
         self._name = name or self.raw
@@ -470,9 +470,7 @@ class DeprecatedRegex(LazyRegex):
 
     def __getattr__(self, attr):
         """Issue deprecation warning."""
-        issue_deprecation_warning(
-            self._name, self._instead, warning_class=FutureWarning,
-            since=self._since)
+        issue_deprecation_warning(self._name, self._instead, since=self._since)
         return super().__getattr__(attr)
 
 
@@ -491,7 +489,7 @@ def first_upper(string: str) -> str:
 
     Empty strings are supported. The original string is not changed.
 
-    @note: MediaWiki doesn't capitalize some characters the same way as Python.
+    :note: MediaWiki doesn't capitalize some characters the same way as Python.
         This function tries to be close to MediaWiki's capitalize function in
         title.php. See T179115 and T200357.
     """
@@ -507,6 +505,7 @@ def normalize_username(username) -> Optional[str]:
     return first_upper(username)
 
 
+@total_ordering
 class MediaWikiVersion:
 
     """
@@ -532,32 +531,26 @@ class MediaWikiVersion:
     MEDIAWIKI_VERSION = re.compile(
         r'(\d+(?:\.\d+)+)(-?wmf\.?(\d+)|alpha|beta(\d+)|-?rc\.?(\d+)|.*)?$')
 
-    def __init__(self, version_str):
+    def __init__(self, version_str: str) -> None:
         """
         Initializer.
 
-        @param version_str: version to parse
-        @type version: str
+        :param version_str: version to parse
         """
-        self.parse(version_str)
+        self._parse(version_str)
 
-    @classmethod
-    def from_generator(cls, generator):
-        """Create instance using the generator string."""
-        if not generator.startswith('MediaWiki '):
-            raise ValueError('Generator string ({!r}) must start with '
-                             '"MediaWiki "'.format(generator))
-        return cls(generator[len('MediaWiki '):])
+    def _parse(self, version_str: str) -> None:
+        version_match = MediaWikiVersion.MEDIAWIKI_VERSION.match(version_str)
 
-    def parse(self, vstring):
-        """Parse version string."""
-        version_match = MediaWikiVersion.MEDIAWIKI_VERSION.match(vstring)
         if not version_match:
-            raise ValueError('Invalid version number "{}"'.format(vstring))
+            raise ValueError('Invalid version number "{}"'.format(version_str))
+
         components = [int(n) for n in version_match.group(1).split('.')]
+
         # The _dev_version numbering scheme might change. E.g. if a stage
         # between 'alpha' and 'beta' is added, 'beta', 'rc' and stable releases
         # are reassigned (beta=3, rc=4, stable=5).
+
         if version_match.group(3):  # wmf version
             self._dev_version = (0, int(version_match.group(3)))
         elif version_match.group(4):
@@ -577,41 +570,45 @@ class MediaWikiVersion:
                       '"{}"'.format(version_match.group(2)),
                       _logger)
             self._dev_version = (4, )
+
         self.suffix = version_match.group(2) or ''
         self.version = tuple(components)
 
-    def __str__(self):
+    @staticmethod
+    def from_generator(generator: str) -> 'MediaWikiVersion':
+        """Create instance from a site's generator attribute."""
+        prefix = 'MediaWiki '
+
+        if not generator.startswith(prefix):
+            raise ValueError('Generator string ({!r}) must start with '
+                             '"{}"'.format(generator, prefix))
+
+        return MediaWikiVersion(generator[len(prefix):])
+
+    def __str__(self) -> str:
         """Return version number with optional suffix."""
         return '.'.join(str(v) for v in self.version) + self.suffix
 
-    def _cmp(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             other = MediaWikiVersion(other)
+        elif not isinstance(other, MediaWikiVersion):
+            return False
 
-        if self.version > other.version:
-            return 1
-        if self.version < other.version:
-            return -1
-        if self._dev_version > other._dev_version:
-            return 1
-        if self._dev_version < other._dev_version:
-            return -1
-        return 0
+        return self.version == other.version and \
+            self._dev_version == other._dev_version
 
-    def __eq__(self, other):
-        return self._cmp(other) == 0
+    def __lt__(self, other: Any) -> bool:
+        if isinstance(other, str):
+            other = MediaWikiVersion(other)
+        elif not isinstance(other, MediaWikiVersion):
+            raise TypeError("Comparison between 'MediaWikiVersion' and '{}' "
+                            'unsupported'.format(type(other).__name__))
 
-    def __lt__(self, other):
-        return self._cmp(other) < 0
-
-    def __le__(self, other):
-        return self._cmp(other) <= 0
-
-    def __gt__(self, other):
-        return self._cmp(other) > 0
-
-    def __ge__(self, other):
-        return self._cmp(other) >= 0
+        if self.version != other.version:
+            return self.version < other.version
+        else:
+            return self._dev_version < other._dev_version
 
 
 class RLock:
@@ -683,7 +680,7 @@ class ThreadedGenerator(threading.Thread):
     Runs a generator in a separate thread and queues the results; can
     be called like a regular generator.
 
-    Subclasses should override self.generator, I{not} self.run
+    Subclasses should override self.generator, *not* self.run
 
     Important: the generator thread will stop itself if the generator's
     internal queue is exhausted; but, if the calling program does not use
@@ -707,10 +704,10 @@ class ThreadedGenerator(threading.Thread):
         target must be a generator function (or other callable that returns
         an iterable object).
 
-        @param qsize: The size of the lookahead queue. The larger the qsize,
+        :param qsize: The size of the lookahead queue. The larger the qsize,
             the more values will be computed in advance of use (which can eat
             up memory and processor time).
-        @type qsize: int
+        :type qsize: int
         """
         if kwargs is None:
             kwargs = {}
@@ -801,14 +798,14 @@ def islice_with_ellipsis(iterable, *args, marker='…'):
     Function takes the
     and the additional keyword marker.
 
-    @param iterable: the iterable to work on
-    @type iterable: iterable
-    @param args: same args as:
-        - C{itertools.islice(iterable, stop)}
-        - C{itertools.islice(iterable, start, stop[, step])}
-    @param marker: element to yield if iterable still contains elements
+    :param iterable: the iterable to work on
+    :type iterable: iterable
+    :param args: same args as:
+        - ``itertools.islice(iterable, stop)``
+        - ``itertools.islice(iterable, start, stop[, step])``
+    :param marker: element to yield if iterable still contains elements
         after showing the required number. Default value: '…'
-    @type marker: str
+    :type marker: str
     """
     s = slice(*args)
     _iterable = iter(iterable)
@@ -843,10 +840,10 @@ class ThreadList(list):
     def __init__(self, limit=128, wait_time=2, *args):
         """Initializer.
 
-        @param limit: the number of simultaneous threads
-        @type limit: int
-        @param wait_time: how long to wait if active threads exceeds limit
-        @type wait_time: int or float
+        :param limit: the number of simultaneous threads
+        :type limit: int
+        :param wait_time: how long to wait if active threads exceeds limit
+        :type wait_time: int or float
         """
         self.limit = limit
         self.wait_time = wait_time
@@ -903,10 +900,10 @@ def intersect_generators(genlist, allow_duplicates=False):
     Quitting before all generators are finished is attempted if
     there is no more chance of finding an item in all queues.
 
-    @param genlist: list of page generators
-    @type genlist: list
-    @param allow_duplicates: allow duplicates if present in all generators
-    @type allow_duplicates: bool
+    :param genlist: list of page generators
+    :type genlist: list
+    :param allow_duplicates: allow duplicates if present in all generators
+    :type allow_duplicates: bool
     """
     # If any generator is empty, no pages are going to be returned
     for source in genlist:
@@ -988,10 +985,10 @@ def roundrobin_generators(*iterables):
 
     *New in version 3.0.*
 
-    @param iterables: any iterable to combine in roundrobin way
-    @type iterables: iterable
-    @return: the combined generator of iterables
-    @rtype: generator
+    :param iterables: any iterable to combine in roundrobin way
+    :type iterables: iterable
+    :return: the combined generator of iterables
+    :rtype: generator
     """
     return (item
             for item in itertools.chain.from_iterable(zip_longest(*iterables))
@@ -1013,8 +1010,8 @@ def filter_unique(iterable, container=None, key=None, add=None):
     multiple generators.
 
     To avoid these issues, it is advisable for the caller to provide their own
-    container and set the key parameter to be the function L{hash}, or use a
-    L{weakref} as the key.
+    container and set the key parameter to be the function
+    :py:obj:`hash`, or use a :py:obj:`weakref` as the key.
 
     The container can be any object that supports __contains__.
     If the container is a set or dict, the method add or __setitem__ will be
@@ -1025,14 +1022,14 @@ def filter_unique(iterable, container=None, key=None, add=None):
 
     Note: This is not thread safe.
 
-    @param iterable: the source iterable
-    @type iterable: collections.abc.Iterable
-    @param container: storage of seen items
-    @type container: type
-    @param key: function to convert the item to a key
-    @type key: callable
-    @param add: function to add an item to the container
-    @type add: callable
+    :param iterable: the source iterable
+    :type iterable: collections.abc.Iterable
+    :param container: storage of seen items
+    :type container: type
+    :param key: function to convert the item to a key
+    :type key: callable
+    :param add: function to add an item to the container
+    :type add: callable
     """
     if container is None:
         container = set()
@@ -1086,7 +1083,7 @@ class EmptyDefault(str, Mapping):
         return iter(())
 
     def __getitem__(self, key):
-        """Raise always a L{CombinedError}."""
+        """Raise always a :py:obj:`CombinedError`."""
         raise CombinedError(key)
 
 
@@ -1105,9 +1102,7 @@ class SelfCallMixin:
     def __call__(self):
         """Do nothing and just return itself."""
         issue_deprecation_warning('Referencing this attribute like a function',
-                                  'it directly',
-                                  warning_class=FutureWarning,
-                                  since='20210420')
+                                  'it directly', since='20210420')
 
         return self
 
@@ -1152,30 +1147,30 @@ def open_archive(filename, mode='rb', use_extension=True):
 
     The compression is either selected via the magic number or file ending.
 
-    @param filename: The filename.
-    @type filename: str
-    @param use_extension: Use the file extension instead of the magic number
+    :param filename: The filename.
+    :type filename: str
+    :param use_extension: Use the file extension instead of the magic number
         to determine the type of compression (default True). Must be True when
         writing or appending.
-    @type use_extension: bool
-    @param mode: The mode in which the file should be opened. It may either be
+    :type use_extension: bool
+    :param mode: The mode in which the file should be opened. It may either be
         'r', 'rb', 'a', 'ab', 'w' or 'wb'. All modes open the file in binary
         mode. It defaults to 'rb'.
-    @type mode: str
-    @raises ValueError: When 7za is not available or the opening mode is
+    :type mode: str
+    :raises ValueError: When 7za is not available or the opening mode is
         unknown or it tries to write a 7z archive.
-    @raises FileNotFoundError: When the filename doesn't exist and it tries
+    :raises FileNotFoundError: When the filename doesn't exist and it tries
         to read from it or it tries to determine the compression algorithm.
-    @raises OSError: When it's not a 7z archive but the file extension is 7z.
+    :raises OSError: When it's not a 7z archive but the file extension is 7z.
         It is also raised by bz2 when its content is invalid. gzip does not
         immediately raise that error but only on reading it.
-    @raises lzma.LZMAError: When error occurs during compression or
+    :raises lzma.LZMAError: When error occurs during compression or
         decompression or when initializing the state with lzma or xz.
-    @raises ImportError: When file is compressed with bz2 but neither bz2 nor
+    :raises ImportError: When file is compressed with bz2 but neither bz2 nor
         bz2file is importable, or when file is compressed with lzma or xz but
         lzma is not importable.
-    @return: A file-like object returning the uncompressed data in binary mode.
-    @rtype: file-like object
+    :return: A file-like object returning the uncompressed data in binary mode.
+    :rtype: file-like object
     """
     # extension_map maps magic_number to extension.
     # Unfortunately, legacy LZMA container has no magic number
@@ -1291,10 +1286,10 @@ def add_decorated_full_name(obj, stacklevel=1):
     This must be done on all decorators that are chained together, otherwise
     the second decorator will have the wrong full name.
 
-    @param obj: A object being decorated
-    @type obj: object
-    @param stacklevel: level to use
-    @type stacklevel: int
+    :param obj: A object being decorated
+    :type obj: object
+    :param stacklevel: level to use
+    :type stacklevel: int
     """
     if hasattr(obj, '__full_name__'):
         return
@@ -1352,10 +1347,10 @@ def add_full_name(obj):
     e.g.
     <xyz>.foo = add_full_name(<xyz>.foo)
 
-    @param obj: The function to decorate
-    @type obj: callable
-    @return: decorating function
-    @rtype: function
+    :param obj: The function to decorate
+    :type obj: callable
+    :return: decorating function
+    :rtype: function
     """
     def outer_wrapper(*outer_args, **outer_kwargs):
         """Outer wrapper.
@@ -1364,8 +1359,8 @@ def add_full_name(obj):
         decorator was called without arguments, or the replacement decorator
         if the decorated decorator was called without arguments.
 
-        @param outer_args: args
-        @param outer_kwargs: kwargs
+        :param outer_args: args
+        :param outer_kwargs: kwargs
         """
         def inner_wrapper(*args, **kwargs):
             """Replacement function.
@@ -1374,8 +1369,8 @@ def add_full_name(obj):
             and this wrapper is used to process the args which belong to
             the function that the decorated decorator was decorating.
 
-            @param args: args passed to the decorated function.
-            @param kwargs: kwargs passed to the decorated function.
+            :param args: args passed to the decorated function.
+            :param kwargs: kwargs passed to the decorated function.
             """
             add_decorated_full_name(args[0])
             return obj(*outer_args, **outer_kwargs)(*args, **kwargs)
@@ -1438,21 +1433,21 @@ def issue_deprecation_warning(name: str, instead=None, depth=2,
                               warning_class=None, since=None):
     """Issue a deprecation warning.
 
-    @param name: the name of the deprecated object
-    @param instead: suggested replacement for the deprecated object
-    @type instead: str or None
-    @param depth: depth + 1 will be used as stacklevel for the warnings
-    @type depth: int
-    @param warning_class: a warning class (category) to be used, defaults to
-        DeprecationWarning
-    @type warning_class: type
-    @param since: a timestamp string of the date when the method was
+    :param name: the name of the deprecated object
+    :param instead: suggested replacement for the deprecated object
+    :type instead: str or None
+    :param depth: depth + 1 will be used as stacklevel for the warnings
+    :type depth: int
+    :param warning_class: a warning class (category) to be used, defaults to
+        FutureWarning
+    :type warning_class: type
+    :param since: a timestamp string of the date when the method was
         deprecated (form 'YYYYMMDD') or a version string.
-    @type since: str or None
+    :type since: str or None
     """
     msg = _build_msg_string(instead, since)
     if warning_class is None:
-        warning_class = (DeprecationWarning
+        warning_class = (FutureWarning
                          if instead else _NotImplementedWarning)
     warn(msg.format(name, instead), warning_class, depth + 1)
 
@@ -1461,36 +1456,36 @@ def issue_deprecation_warning(name: str, instead=None, depth=2,
 def deprecated(*args, **kwargs):
     """Decorator to output a deprecation warning.
 
-    @kwarg instead: if provided, will be used to specify the replacement
-    @type instead: str
-    @kwarg since: a timestamp string of the date when the method was
+    :keyword instead: if provided, will be used to specify the replacement
+    :type instead: str
+    :keyword since: a timestamp string of the date when the method was
         deprecated (form 'YYYYMMDD') or a version string.
-    @type since: str
-    @kwarg future_warning: if True a FutureWarning will be thrown,
-        otherwise it defaults to DeprecationWarning
-    @type future_warning: bool
+    :type since: str
+    :keyword future_warning: if True a FutureWarning will be thrown,
+        otherwise it provides a DeprecationWarning
+    :type future_warning: bool
     """
     def decorator(obj):
         """Outer wrapper.
 
         The outer wrapper is used to create the decorating wrapper.
 
-        @param obj: function being wrapped
-        @type obj: object
+        :param obj: function being wrapped
+        :type obj: object
         """
         def wrapper(*args, **kwargs):
             """Replacement function.
 
-            @param args: args passed to the decorated function.
-            @param kwargs: kwargs passed to the decorated function.
-            @return: the value returned by the decorated function
-            @rtype: any
+            :param args: args passed to the decorated function.
+            :param kwargs: kwargs passed to the decorated function.
+            :return: the value returned by the decorated function
+            :rtype: any
             """
             name = obj.__full_name__
             depth = get_wrapper_depth(wrapper) + 1
             issue_deprecation_warning(
                 name, instead, depth, since=since,
-                warning_class=FutureWarning if future_warning else None)
+                warning_class=None if future_warning else DeprecationWarning)
             return obj(*args, **kwargs)
 
         def add_docstring(wrapper):
@@ -1531,7 +1526,7 @@ def deprecated(*args, **kwargs):
         return wrapper
 
     since = kwargs.pop('since', None)
-    future_warning = kwargs.pop('future_warning', False)
+    future_warning = kwargs.pop('future_warning', True)
     without_parameters = len(args) == 1 and not kwargs and callable(args[0])
     if 'instead' in kwargs:
         instead = kwargs['instead']
@@ -1568,9 +1563,9 @@ def deprecate_arg(old_arg: str, new_arg):
     deprecate_arg decorator but it is held to deprecate args which become
     a reserved word in future Python releases and to prevent syntax errors.
 
-    @param old_arg: old keyword
-    @param new_arg: new keyword
-    @type new_arg: str or None or bool
+    :param old_arg: old keyword
+    :param new_arg: new keyword
+    :type new_arg: str or None or bool
     """
     return deprecated_args(**{old_arg: new_arg})
 
@@ -1584,7 +1579,7 @@ def deprecated_args(**arg_pairs):
         def my_function(bar='baz'): pass
         # replaces 'foo' keyword by 'bar' and ignores 'baz' keyword
 
-    @param arg_pairs: Each entry points to the new argument name. If an
+    :param arg_pairs: Each entry points to the new argument name. If an
         argument is to be removed, the value may be one of the following:
         - None: shows a DeprecationWarning
         - False: shows a PendingDeprecationWarning
@@ -1596,16 +1591,16 @@ def deprecated_args(**arg_pairs):
 
         The outer wrapper is used to create the decorating wrapper.
 
-        @param obj: function being wrapped
-        @type obj: object
+        :param obj: function being wrapped
+        :type obj: object
         """
         def wrapper(*__args, **__kw):
             """Replacement function.
 
-            @param __args: args passed to the decorated function
-            @param __kw: kwargs passed to the decorated function
-            @return: the value returned by the decorated function
-            @rtype: any
+            :param __args: args passed to the decorated function
+            :param __kw: kwargs passed to the decorated function
+            :return: the value returned by the decorated function
+            :rtype: any
             """
             name = obj.__full_name__
             depth = get_wrapper_depth(wrapper) + 1
@@ -1684,10 +1679,10 @@ def remove_last_args(arg_names):
     original function requests one and arg_names contain one name will result
     in an error, because the function got called with 2 parameters.
 
-    The decorated function may not use C{*args} or C{**kwargs}.
+    The decorated function may not use ``*args`` or ``**kwargs``.
 
-    @param arg_names: The names of all arguments.
-    @type arg_names: iterable; for the most explanatory message it should
+    :param arg_names: The names of all arguments.
+    :type arg_names: iterable; for the most explanatory message it should
         retain the given order (so not a set for example).
     """
     def decorator(obj):
@@ -1695,16 +1690,16 @@ def remove_last_args(arg_names):
 
         The outer wrapper is used to create the decorating wrapper.
 
-        @param obj: function being wrapped
-        @type obj: object
+        :param obj: function being wrapped
+        :type obj: object
         """
         def wrapper(*__args, **__kw):
             """Replacement function.
 
-            @param __args: args passed to the decorated function
-            @param __kw: kwargs passed to the decorated function
-            @return: the value returned by the decorated function
-            @rtype: any
+            :param __args: args passed to the decorated function
+            :param __kw: kwargs passed to the decorated function
+            :return: the value returned by the decorated function
+            :rtype: any
             """
             name = obj.__full_name__
             depth = get_wrapper_depth(wrapper) + 1
@@ -1742,37 +1737,37 @@ def redirect_func(target, source_module: Optional[str] = None,
                   old_name: Optional[str] = None,
                   class_name: Optional[str] = None,
                   since: Optional[str] = None,
-                  future_warning=False):
+                  future_warning=True):
     """
     Return a function which can be used to redirect to 'target'.
 
     It also acts like marking that function deprecated and copies all
     parameters.
 
-    @param target: The targeted function which is to be executed.
-    @type target: callable
-    @param source_module: The module of the old function. If '.' defaults
+    :param target: The targeted function which is to be executed.
+    :type target: callable
+    :param source_module: The module of the old function. If '.' defaults
         to target_module. If 'None' (default) it tries to guess it from the
         executing function.
-    @param target_module: The module of the target function. If
+    :param target_module: The module of the target function. If
         'None' (default) it tries to get it from the target. Might not work
         with nested classes.
-    @param old_name: The old function name. If None it uses the name of the
+    :param old_name: The old function name. If None it uses the name of the
         new function.
-    @param class_name: The name of the class. It's added to the target and
+    :param class_name: The name of the class. It's added to the target and
         source module (separated by a '.').
-    @param since: a timestamp string of the date when the method was
+    :param since: a timestamp string of the date when the method was
         deprecated (form 'YYYYMMDD') or a version string.
-    @param future_warning: if True a FutureWarning will be thrown,
-        otherwise it defaults to DeprecationWarning
-    @type future_warning: bool
-    @return: A new function which adds a warning prior to each execution.
-    @rtype: callable
+    :param future_warning: if True a FutureWarning will be thrown,
+        otherwise it provides a DeprecationWarning
+    :type future_warning: bool
+    :return: A new function which adds a warning prior to each execution.
+    :rtype: callable
     """
     def call(*a, **kw):
         issue_deprecation_warning(
             old_name, new_name, since=since,
-            warning_class=FutureWarning if future_warning else None)
+            warning_class=None if future_warning else DeprecationWarning)
         return target(*a, **kw)
     if target_module is None:
         target_module = target.__module__
@@ -1805,10 +1800,10 @@ class ModuleDeprecationWrapper(types.ModuleType):
         Initialise the wrapper.
 
         It will automatically overwrite the module with this instance in
-        C{sys.modules}.
+        ``sys.modules``.
 
-        @param module: The module name or instance
-        @type module: str or module
+        :param module: The module name or instance
+        :type module: str or module
         """
         if isinstance(module, (str, bytes)):
             module = sys.modules[module]
@@ -1819,30 +1814,29 @@ class ModuleDeprecationWrapper(types.ModuleType):
         if __debug__:
             sys.modules[module.__name__] = self
 
-    def _add_deprecated_attr(self, name: str, replacement=None,
-                             replacement_name: Optional[str] = None,
-                             warning_message: Optional[str] = None,
-                             since: Optional[str] = None,
-                             future_warning: bool = False):
+    def add_deprecated_attr(self, name: str, replacement: Any = None, *,
+                            replacement_name: Optional[str] = None,
+                            warning_message: Optional[str] = None,
+                            since: Optional[str] = None,
+                            future_warning: bool = True):
         """
         Add the name to the local deprecated names dict.
 
-        @param name: The name of the deprecated class or variable. It may not
+        :param name: The name of the deprecated class or variable. It may not
             be already deprecated.
-        @param replacement: The replacement value which should be returned
+        :param replacement: The replacement value which should be returned
             instead. If the name is already an attribute of that module this
             must be None. If None it'll return the attribute of the module.
-        @type replacement: any
-        @param replacement_name: The name of the new replaced value. Required
-            if C{replacement} is not None and it has no __name__ attribute.
+        :param replacement_name: The name of the new replaced value. Required
+            if ``replacement`` is not None and it has no __name__ attribute.
             If it contains a '.', it will be interpreted as a Python dotted
             object name, and evaluated when the deprecated object is needed.
-        @param warning_message: The warning to display, with positional
+        :param warning_message: The warning to display, with positional
             variables: {0} = module, {1} = attribute name, {2} = replacement.
-        @param since: a timestamp string of the date when the method was
+        :param since: a timestamp string of the date when the method was
             deprecated (form 'YYYYMMDD') or a version string.
-        @param future_warning: if True a FutureWarning will be thrown,
-            otherwise it defaults to DeprecationWarning
+        :param future_warning: if True a FutureWarning will be thrown,
+            otherwise it provides a DeprecationWarning
         """
         if '.' in name:
             raise ValueError('Deprecated name "{}" may not contain '
@@ -1887,7 +1881,7 @@ class ModuleDeprecationWrapper(types.ModuleType):
             warn(warning_message.format(self._module.__name__, attr, name),
                  FutureWarning if future else DeprecationWarning, 2)
 
-            if repl:
+            if repl is not None:
                 return repl
 
             if '.' in name:
@@ -1906,14 +1900,14 @@ class ModuleDeprecationWrapper(types.ModuleType):
 def file_mode_checker(filename: str, mode=0o600, quiet=False, create=False):
     """Check file mode and update it, if needed.
 
-    @param filename: filename path
-    @param mode: requested file mode
-    @type mode: int
-    @param quiet: warn about file mode change if False.
-    @type quiet: bool
-    @param create: create the file if it does not exist already
-    @type create: bool
-    @raise IOError: The file does not exist and `create` is False.
+    :param filename: filename path
+    :param mode: requested file mode
+    :type mode: int
+    :param quiet: warn about file mode change if False.
+    :type quiet: bool
+    :param create: create the file if it does not exist already
+    :type create: bool
+    :raise IOError: The file does not exist and `create` is False.
     """
     try:
         st_mode = os.stat(filename).st_mode
@@ -1936,14 +1930,14 @@ def compute_file_hash(filename: str, sha='sha1', bytes_to_read=None):
 
     Result is expressed as hexdigest().
 
-    @param filename: filename path
-    @param sha: hashing function among the following in hashlib:
+    :param filename: filename path
+    :param sha: hashing function among the following in hashlib:
         md5(), sha1(), sha224(), sha256(), sha384(), and sha512()
         function name shall be passed as string, e.g. 'sha1'.
-    @type sha: str
-    @param bytes_to_read: only the first bytes_to_read will be considered;
+    :type sha: str
+    :param bytes_to_read: only the first bytes_to_read will be considered;
         if file size is smaller, the whole file will be considered.
-    @type bytes_to_read: None or int
+    :type bytes_to_read: None or int
 
     """
     size = os.path.getsize(filename)
@@ -1968,7 +1962,8 @@ def compute_file_hash(filename: str, sha='sha1', bytes_to_read=None):
 # deprecated parts ############################################################
 
 
-@deprecated('bot_choice.Option and its subclasses', since='20181217')
+@deprecated('bot_choice.Option and its subclasses', since='20181217',
+            future_warning=True)
 def concat_options(message, line_length, options):
     """DEPRECATED. Concatenate options."""
     indent = len(message) + 2
@@ -1993,18 +1988,17 @@ def concat_options(message, line_length, options):
 
 
 wrapper = ModuleDeprecationWrapper(__name__)
-wrapper._add_deprecated_attr('empty_iterator', replacement_name='iter(())',
-                             since='20220422', future_warning=True)
-wrapper._add_deprecated_attr('DotReadableDict', replacement_name='',
-                             since='20210416', future_warning=True)
-wrapper._add_deprecated_attr('frozenmap',
-                             replacement_name='types.MappingProxyType',
-                             since='20210415',
-                             future_warning=True)
-wrapper._add_deprecated_attr('LazyRegex', replacement_name='',
-                             since='20210418', future_warning=True)
-wrapper._add_deprecated_attr('DeprecatedRegex', replacement_name='',
-                             since='20210418', future_warning=True)
+wrapper.add_deprecated_attr('empty_iterator', replacement_name='iter(())',
+                            since='20220422')
+wrapper.add_deprecated_attr('DotReadableDict', replacement_name='',
+                            since='20210416')
+wrapper.add_deprecated_attr('frozenmap',
+                            replacement_name='types.MappingProxyType',
+                            since='20210415')
+wrapper.add_deprecated_attr('LazyRegex', replacement_name='',
+                            since='20210418')
+wrapper.add_deprecated_attr('DeprecatedRegex', replacement_name='',
+                            since='20210418')
 
 
 is_IP = redirect_func(is_ip_address, old_name='is_IP',  # noqa N816

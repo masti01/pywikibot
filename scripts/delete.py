@@ -60,7 +60,7 @@ import collections
 import pywikibot
 from pywikibot import i18n, pagegenerators
 from pywikibot.backports import DefaultDict, Set, Tuple
-from pywikibot.bot import CurrentPageBot, MultipleSitesBot
+from pywikibot.bot import CurrentPageBot
 from pywikibot.page import Page
 from pywikibot.site import Namespace
 from pywikibot.tools import islice_with_ellipsis
@@ -114,8 +114,8 @@ class PageWithRefs(Page):
         If namespaces is None, all namespaces are checked.
         Returns a set with namespaces where a ref to page is present.
 
-        @param namespaces: Namespace to check
-        @type namespaces: iterable of Namespace objects
+        :param namespaces: Namespace to check
+        :type namespaces: iterable of Namespace objects
         """
         if namespaces is None:
             namespaces = self.site.namespaces()
@@ -123,7 +123,7 @@ class PageWithRefs(Page):
         return set(namespaces) & set(self.ref_table)
 
 
-class DeletionRobot(MultipleSitesBot, CurrentPageBot):
+class DeletionRobot(CurrentPageBot):
 
     """This robot allows deletion of pages en masse."""
 
@@ -131,9 +131,9 @@ class DeletionRobot(MultipleSitesBot, CurrentPageBot):
         """
         Initializer.
 
-        @param generator: the pages to work on
-        @type generator: iterable
-        @param summary: the reason for the (un)deletion
+        :param generator: the pages to work on
+        :type generator: iterable
+        :param summary: the reason for the (un)deletion
         """
         self.available_options.update({
             'undelete': False,
@@ -224,7 +224,7 @@ def main(*args: Tuple[str, ...]) -> None:
 
     If args is an empty list, sys.argv is used.
 
-    @param args: command line arguments
+    :param args: command line arguments
     """
     page_name = ''
     summary = None

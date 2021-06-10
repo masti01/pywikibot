@@ -146,7 +146,7 @@ docuReplacements = {'&params;': pagegenerators.parameterHelp}  # noqa: N816
 
 ignorelist = [
     # Officially reserved for testing, documentation, etc. in
-    # https://tools.ietf.org/html/rfc2606#page-2
+    # https://datatracker.ietf.org/doc/html/rfc2606#page-2
     # top-level domains:
     re.compile(r'.*[\./@]test(/.*)?'),
     re.compile(r'.*[\./@]example(/.*)?'),
@@ -444,7 +444,7 @@ class History:
 
         If link was previously found dead, remove it from the .dat file.
 
-        @return: True if previously found dead, else returns False.
+        :return: True if previously found dead, else returns False.
         """
         if url in self.historyDict:
             with self.semaphore, suppress(KeyError):
@@ -615,7 +615,7 @@ def countLinkCheckThreads() -> int:
     """
     Count LinkCheckThread threads.
 
-    @return: number of LinkCheckThread threads
+    :return: number of LinkCheckThread threads
     """
     i = 0
     for thread in threading.enumerate():
@@ -630,8 +630,8 @@ def main(*args):
 
     If args is an empty list, sys.argv is used.
 
-    @param args: command line arguments
-    @type args: str
+    :param args: command line arguments
+    :type args: str
     """
     gen = None
     xmlFilename = None

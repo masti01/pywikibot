@@ -1,6 +1,63 @@
 Release history
 ^^^^^^^^^^^^^^^
 
+6.3.0
+-----
+*31 May 2021*
+
+* Check bot/nobots templates for cosmetic_changes hook (T283989)
+* Remove outdated opt._option which is already dropped (T284005)
+* Use IntEnum with cosmetic_changes CANCEL
+* Remove lru_cahce from botMayEdit method and fix it's logic (T283957)
+* DataSite.createNewItemFromPage() method was removed in favour of ImagePage.fromPage() (T98663)
+* mwparserfromhell or wikitextparser MediaWiki markup parser is mandatory (T106763)
+
+
+6.2.0
+-----
+*28 May 2021*
+
+Improvements and Bugfixes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Use different logfiles for multiple processes of the same script (T56685)
+* throttle.pip will be reused as soon as possbile
+* terminal_interface_base.TerminalHandler is subclassed from logging.StreamHandler
+* Fix iterating of SizedKeyCollection (T282865)
+* An abstract base user interface module was added
+* APISite method pagelanglinks() may skip links with empty titles (T223157)
+* Fix Page.getDeletedRevision() method which always returned an empty list
+* Async chunked uploads are supported (T129216, T133443)
+* A new InvalidPageError will be raised if a Page has no version history (T280043)
+* L10N updates
+* Fix __getattr__ for WikibaseEntity (T281389)
+* Handle abusefilter-{disallow,warning} codes (T85656)
+
+Code cleanups
+~~~~~~~~~~~~~
+
+* MultipleSitesBot.site attribute was removed (T283209)
+* Deprecated BaseSite.category_namespaces() method was removed
+* i18n.twntranslate() function was removed in favour of twtranslate()
+* siteinfo must be used as a dictionary ad cannot be called anymore
+* APISite.has_transcluded_data() method was removed
+* Deprecated LogEntry.title() method was removed
+* Deprecated APISite.watchpage() method was removed
+* OptionHandler.options dict has been removed in favour of OptionHandler.opt
+* The toStdout parameter of ui.output has been dropped
+* terminal_interface_base.TerminalFormatter was removed
+* Move page functions UnicodeToAsciiHtml, unicode2html, url2unicode to tools.chars with renaming them
+* Rename _MultiTemplateMatchBuilder to MultiTemplateMatchBuilder
+* User.name() method was removed in favour of User.username property
+* BasePage.getLatestEditors() method was removed in favour of contributors() or revisions()
+* pagenenerators.handleArg() method was renamed to handle_arg() (T271437)
+* CategoryGenerator, FileGenerator, ImageGenerator and ReferringPageGenerator pagegenerator functions were removed
+* Family.ignore_certificate_error() method was removed in favour of verify_SSL_certificate (T265205)
+* tools.is_IP was renamed to is_ip_address due to PEP8
+* config2.py was renamed to config.py
+* Exceptions were renamed having a suffix "Error" due to PEP8 (T280227)
+
+
 6.1.0
 -----
 *17 April 2021*
@@ -38,7 +95,6 @@ Code cleanups
 * getSite() function was removed in favour of Site() constructor
 * Page.fileUrl() was removed in favour of Page.get_file_url()
 * Deprecated getuserinfo and getglobaluserinfo Site methods were removed
-* compat2core.py script was archived
 
 
 6.0.1

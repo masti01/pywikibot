@@ -10,9 +10,9 @@ messages. However, there are three user input questions in pagegenerators
 which will use i18n messages if they can be loaded.
 
 The default message location may be changed by calling
-L{set_message_package} with a package name. The package must contain an
+:py:obj:`set_message_package` with a package name. The package must contain an
 __init__.py, and a message bundle called 'pywikibot' containing messages.
-See L{twtranslate} for more information on the messages.
+See :py:obj:`twtranslate` for more information on the messages.
 """
 #
 # (C) Pywikibot team, 2004-2021
@@ -28,7 +28,6 @@ from collections.abc import Mapping
 from contextlib import suppress
 from textwrap import fill
 from typing import Optional, Union
-from warnings import warn
 
 import pywikibot
 from pywikibot import __url__, config
@@ -36,9 +35,7 @@ from pywikibot.backports import List, cache
 from pywikibot.plural import plural_rule
 from pywikibot.tools import (
     ModuleDeprecationWrapper,
-    deprecated,
     deprecated_args,
-    issue_deprecation_warning,
 )
 
 
@@ -368,8 +365,8 @@ def messages_available() -> bool:
     Return False if there are no i18n messages available.
 
     To determine if messages are available, it looks for the package name
-    set using L{set_messages_package} for a message bundle called 'pywikibot'
-    containing messages.
+    set using :py:obj:`set_messages_package` for a message bundle called
+    'pywikibot' containing messages.
     """
     global _messages_available
     if _messages_available is not None:
@@ -400,8 +397,8 @@ def _altlang(lang: str) -> List[str]:
 
     This code is used by other translating methods below.
 
-    @param lang: The language code
-    @return: language codes
+    :param lang: The language code
+    :return: language codes
     """
     return _GROUP_NAME_TO_FALLBACKS[_LANG_TO_GROUP_NAME[lang]]
 
@@ -428,10 +425,10 @@ def _get_translation(lang: str, twtitle: str) -> Optional[str]:
 def _extract_plural(lang: str, message: str, parameters: Mapping) -> str:
     """Check for the plural variants in message and replace them.
 
-    @param message: the message to be replaced
-    @param parameters: plural parameters passed from other methods
-    @type parameters: Mapping of str to int
-    @return: The message with the plural instances replaced
+    :param message: the message to be replaced
+    :param parameters: plural parameters passed from other methods
+    :type parameters: Mapping of str to int
+    :return: The message with the plural instances replaced
     """
     def static_plural_value(n):
         return rule['plural']
@@ -441,12 +438,8 @@ def _extract_plural(lang: str, message: str, parameters: Mapping) -> str:
         variants = match.group(2)
         num = parameters[selector]
         if not isinstance(num, int):
-            issue_deprecation_warning(
-                'type {} for value {} ({})'
-                .format(type(num), selector, num),
-                'an int', 1,
-                warning_class=FutureWarning, since='20151009')
-            num = int(num)
+            raise ValueError("'{}' must be a number, not a {} ({})"
+                             .format(selector, num, type(num).__name__))
 
         plural_entries = []
         specific_entries = {}
@@ -529,7 +522,7 @@ DEFAULT_FALLBACK = ('_default', )
 
 def translate(code,
               xdict: Union[dict, str],
-              parameters: Union[dict, str, int, None] = None,
+              parameters: Optional[Mapping] = None,
               fallback=False) -> str:
     """Return the most appropriate localization from a localization dict.
 
@@ -545,23 +538,23 @@ def translate(code,
 
     For PLURAL support have a look at the twtranslate method.
 
-    @param code: The site code as string or Site object. If xdict is an
+    :param code: The site code as string or Site object. If xdict is an
         extended dictionary the Site object should be used in favour of the
         code string. Otherwise localizations from a wrong family might be
         used.
-    @type code: str or Site object
-    @param xdict: dictionary with language codes as keys or extended
+    :type code: str or Site object
+    :param xdict: dictionary with language codes as keys or extended
         dictionary with family names as keys containing code dictionaries
         or a single string. May contain PLURAL tags as described in
         twtranslate
-    @param parameters: For passing (plural) parameters
-    @param fallback: Try an alternate language code. If it's iterable it'll
+    :param parameters: For passing (plural) parameters
+    :param fallback: Try an alternate language code. If it's iterable it'll
         also try those entries and choose the first match.
-    @type fallback: boolean or iterable
-    @return: the localized string
-    @raise IndexError: If the language supports and requires more plurals
+    :type fallback: boolean or iterable
+    :return: the localized string
+    :raise IndexError: If the language supports and requires more plurals
         than defined for the given PLURAL pattern.
-    @raise KeyError: No fallback key found if fallback is not False
+    :raise KeyError: No fallback key found if fallback is not False
     """
     family = pywikibot.config.family
     # If a site is given instead of a code, use its language
@@ -610,15 +603,11 @@ def translate(code,
         return trans
 
     if not isinstance(parameters, Mapping):
-        issue_deprecation_warning('parameters not being a mapping',
-                                  warning_class=FutureWarning,
-                                  since='20151008')
-        plural_parameters = _PluralMappingAlias(parameters)
-    else:
-        plural_parameters = parameters
+        raise ValueError('parameters should be a mapping, not {}'
+                         .format(type(parameters).__name__))
 
     # else we check for PLURAL variants
-    trans = _extract_plural(code, trans, plural_parameters)
+    trans = _extract_plural(code, trans, parameters)
     if parameters:
         # On error: parameter is for PLURAL variants only,
         # don't change the string
@@ -685,21 +674,21 @@ def twtranslate(source,
     ... ) % {'descr': 'seulement'})
     'Robot: Changer seulement quelques pages.'
 
-    @param source: When it's a site it's using the lang attribute and otherwise
+    :param source: When it's a site it's using the lang attribute and otherwise
         it is using the value directly.
-    @type source: BaseSite or str
-    @param twtitle: The TranslateWiki string title, in <package>-<key> format
-    @param parameters: For passing parameters. It should be a mapping but for
+    :type source: BaseSite or str
+    :param twtitle: The TranslateWiki string title, in <package>-<key> format
+    :param parameters: For passing parameters. It should be a mapping but for
         backwards compatibility can also be a list, tuple or a single value.
         They are also used for plural entries in which case they must be a
         Mapping and will cause a TypeError otherwise.
-    @param fallback: Try an alternate language code
-    @param fallback_prompt: The English message if i18n is not available
-    @param only_plural: Define whether the parameters should be only applied to
+    :param fallback: Try an alternate language code
+    :param fallback_prompt: The English message if i18n is not available
+    :param only_plural: Define whether the parameters should be only applied to
         plural instances. If this is False it will apply the parameters also
         to the resulting string. If this is True the placeholders must be
         manually applied afterwards.
-    @raise IndexError: If the language supports and requires more plurals than
+    :raise IndexError: If the language supports and requires more plurals than
         defined for the given translation template.
     """
     if not messages_available():
@@ -714,21 +703,9 @@ def twtranslate(source,
             'See {}/i18n'
             .format(_messages_package_name, twtitle, __url__))
 
-    source_needed = False
-    # If a site is given instead of a lang, use its language
-    if hasattr(source, 'lang'):
-        lang = source.lang
-    # check whether we need the language code back
-    elif isinstance(source, list):
-        # For backwards compatibility still support lists, when twntranslate
-        # was not deprecated and needed a way to get the used language code
-        # back.
-        warn('The source argument should not be a list but either a BaseSite '
-             'or a str/unicode.', DeprecationWarning, 2)
-        lang = source.pop()
-        source_needed = True
-    else:
-        lang = source
+    # if source is a site then use its lang attribute, otherwise it's a str
+
+    lang = getattr(source, 'lang', source)
 
     # There are two possible failure modes: the translation dict might not have
     # the language altogether, or a specific key could be untranslated. Both
@@ -747,9 +724,6 @@ def twtranslate(source,
             'outdated submodule. See {}/i18n'
             .format('English' if 'en' in langs else "'{}'".format(lang),
                     twtitle, __url__)))
-    # send the language code back via the given mutable list parameter
-    if source_needed:
-        source.append(alt)
 
     if '{{PLURAL:' in trans:
         # _extract_plural supports in theory non-mappings, but they are
@@ -758,34 +732,13 @@ def twtranslate(source,
             raise TypeError('parameters must be a mapping.')
         trans = _extract_plural(alt, trans, parameters)
 
-    # this is only the case when called in twntranslate, and that didn't apply
-    # parameters when it wasn't a dict
-    if isinstance(parameters, _PluralMappingAlias):
-        # This is called due to the old twntranslate function which ignored
-        # KeyError. Instead only_plural should be used.
-        if isinstance(parameters.source, dict):
-            with suppress(KeyError):
-                trans %= parameters.source
-        parameters = None
-
     if parameters is not None and not isinstance(parameters, Mapping):
-        issue_deprecation_warning('parameters not being a Mapping',
-                                  warning_class=FutureWarning,
-                                  since='20151008')
+        raise ValueError('parameters should be a mapping, not {}'
+                         .format(type(parameters).__name__))
 
     if not only_plural and parameters:
         return trans % parameters
     return trans
-
-
-@deprecated('twtranslate', since='20151009', future_warning=True)
-@deprecated_args(code='source')
-def twntranslate(source, twtitle: str,
-                 parameters: Optional[Mapping] = None) -> Optional[str]:
-    """DEPRECATED: Get translated string for the key."""
-    if parameters is not None:
-        parameters = _PluralMappingAlias(parameters)
-    return twtranslate(source, twtitle, parameters)
 
 
 @deprecated_args(code='source')
@@ -798,10 +751,10 @@ def twhas_key(source, twtitle: str) -> bool:
 
     No code fallback is made.
 
-    @param source: When it's a site it's using the lang attribute and otherwise
+    :param source: When it's a site it's using the lang attribute and otherwise
         it is using the value directly.
-    @type source: BaseSite or str
-    @param twtitle: The TranslateWiki string title, in <package>-<key> format
+    :type source: BaseSite or str
+    :param twtitle: The TranslateWiki string title, in <package>-<key> format
     """
     # If a site is given instead of a code, use its language
     lang = getattr(source, 'lang', source)
@@ -813,9 +766,9 @@ def twget_keys(twtitle: str) -> List[str]:
     """
     Return all language codes for a special message.
 
-    @param twtitle: The TranslateWiki string title, in <package>-<key> format
+    :param twtitle: The TranslateWiki string title, in <package>-<key> format
 
-    @raises OSError: the package i18n cannot be loaded
+    :raises OSError: the package i18n cannot be loaded
     """
     # obtain the directory containing all the json files for this package
     package = twtitle.split('-')[0]
@@ -840,13 +793,13 @@ def input(twtitle: str,
     """
     Ask the user a question, return the user's answer.
 
-    The prompt message is retrieved via L{twtranslate} and uses the
+    The prompt message is retrieved via :py:obj:`twtranslate` and uses the
     config variable 'userinterface_lang'.
 
-    @param twtitle: The TranslateWiki string title, in <package>-<key> format
-    @param parameters: The values which will be applied to the translated text
-    @param password: Hides the user's input (for password entry)
-    @param fallback_prompt: The English prompt if i18n is not available.
+    :param twtitle: The TranslateWiki string title, in <package>-<key> format
+    :param parameters: The values which will be applied to the translated text
+    :param password: Hides the user's input (for password entry)
+    :param fallback_prompt: The English prompt if i18n is not available.
     """
     if messages_available():
         code = config.userinterface_lang
@@ -861,7 +814,7 @@ def input(twtitle: str,
 
 
 wrapper = ModuleDeprecationWrapper(__name__)
-wrapper._add_deprecated_attr(
+wrapper.add_deprecated_attr(
     'TranslationError',
     replacement_name='pywikibot.exceptions.TranslationError',
-    since='20210423', future_warning=True)
+    since='20210423')

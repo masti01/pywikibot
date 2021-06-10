@@ -1,6 +1,6 @@
 """Bot tests."""
 #
-# (C) Pywikibot team, 2015-2020
+# (C) Pywikibot team, 2015-2021
 #
 # Distributed under the terms of the MIT license.
 #
@@ -10,7 +10,7 @@ from contextlib import suppress
 import pywikibot
 import pywikibot.bot
 from pywikibot import i18n
-from pywikibot.tools import suppress_warnings
+
 from tests.aspects import (
     DefaultSiteTestCase,
     SiteAttributeTestCase,
@@ -37,27 +37,29 @@ class FakeSaveBotTestCase(TestCase):
     """
     An abstract test case which patches the bot class to not actually write.
 
-    It redirects the bot's _save_page to it's own C{bot_save} method. Currently
-    userPut, put_current and user_edit_entity call it. By default it'll call
-    the original method but replace the function called to actually save the
-    page by C{page_save}. It patches the bot class as soon as this class'
-    attribute bot is defined. It also sets the bot's 'always' option to True to
-    avoid user interaction.
+    It redirects the bot's _save_page to it's own ``bot_save`` method.
+    Currently userPut, put_current and user_edit_entity call it. By
+    default it'll call the original method but replace the function
+    called to actually save the page by ``page_save``. It patches the
+    bot class as soon as this class' attribute bot is defined. It also
+    sets the bot's 'always' option to True to avoid user interaction.
 
-    The C{bot_save} method compares the save counter before the call and
+    The ``bot_save`` method compares the save counter before the call and
     asserts that it has increased by one after the call. It also stores
-    locally in C{save_called} if C{page_save} has been called. If C{bot_save}
-    or C{page_save} are implemented they should call super's method at some
-    point to make sure these assertions work. At C{tearDown} it checks that
-    the pages are saved often enough. The attribute C{default_assert_saves}
-    defines the number of saves which must happen and compares it to the
-    difference using the save counter. It is possible to define C{assert_saves}
-    after C{setUp} to overwrite the default value for certain tests. By default
-    the number of saves it asserts are 1. Additionally C{save_called} increases
-    by 1 on each call of C{page_save} and should be equal to C{assert_saves}.
+    locally in ``save_called`` if ``page_save`` has been called. If
+    ``bot_save`` or ``page_save`` are implemented they should call
+    super's method at some point to make sure these assertions work. At
+    ``tearDown`` it checks that the pages are saved often enough. The
+    attribute ``default_assert_saves`` defines the number of saves which
+    must happen and compares it to the difference using the save counter.
+    It is possible to define ``assert_saves`` after ``setUp`` to
+    overwrite the default value for certain tests. By default the number
+    of saves it asserts are 1. Additionally ``save_called`` increases by
+    1 on each call of ``page_save`` and should be equal to
+    ``assert_saves``.
 
     This means if the bot class actually does other writes, like using
-    L{pywikibot.page.Page.save} manually, it'll still write.
+    :py:obj:`pywikibot.page.Page.save` manually, it'll still write.
     """
 
     @property
@@ -119,13 +121,16 @@ class TestBotTreatExit:
 
         Afterwards it calls post_treat so it's possible to do additional
         checks.
+
+        Site attributes are only present on Bot and SingleSitesBot, not
+        MultipleSitesBot.
         """
         def treat(page):
             self.assertEqual(page, next(self._page_iter))
             if self._treat_site is None:
                 self.assertFalse(hasattr(self.bot, 'site'))
                 self.assertFalse(hasattr(self.bot, '_site'))
-            else:
+            elif not isinstance(self.bot, pywikibot.bot.MultipleSitesBot):
                 self.assertIsNotNone(self.bot._site)
                 self.assertEqual(self.bot.site, self.bot._site)
                 if self._treat_site:
@@ -222,23 +227,15 @@ class TestDrySiteBot(TestBotTreatExit, SiteAttributeTestCase):
         self.bot.run()
         self.assertEqual(self.bot.site, self._treat_site)
 
-    @suppress_warnings('pywikibot.bot.MultipleSitesBot.site is deprecated')
     def test_MultipleSitesBot(self):
         """Test MultipleSitesBot class."""
         # Assert no specific site
         self._treat_site = False
         self.bot = pywikibot.bot.MultipleSitesBot(generator=self._generator())
-        with self.assertRaisesRegex(AttributeError,
-                                    self.CANT_SET_ATTRIBUTE_RE):
-            self.bot.site = self.de
-        with self.assertRaisesRegex(ValueError, self.NOT_IN_TREAT_RE):
-            self.bot.site
 
         self.bot.treat = self._treat(self._generator())
         self.bot.exit = self._exit(4)
         self.bot.run()
-        with self.assertRaisesRegex(ValueError, self.NOT_IN_TREAT_RE):
-            self.bot.site
 
     def test_Bot(self):
         """Test normal Bot class."""
@@ -392,20 +389,6 @@ class TestOptionHandler(TestCase):
         self.assertEqual(oh.opt.baz, 'Hey')
         self.assertEqual(oh.opt['baz'], 'Hey')
         self.assertNotIn('baz', oh.opt.__dict__)
-        with suppress_warnings(r'pywikibot\.bot\.OptionHandler\.options'):
-            self.assertEqual(oh.options['baz'], 'Hey')
-
-    def test_options(self):
-        """Test deprecated option attribute."""
-        oh = self.option_handler
-        with suppress_warnings(r'pywikibot\.bot\.OptionHandler\.options'):
-            self.assertNotIn('bar', oh.options)
-            self.assertIn('baz', oh.options)
-            self.assertTrue(oh.options['baz'])
-            self.assertEqual(oh.opt['baz'], oh.options['baz'])
-            oh.options['baz'] = False
-            self.assertFalse(oh.options['baz'])
-            self.assertFalse(oh.opt.baz)
 
 
 if __name__ == '__main__':  # pragma: no cover

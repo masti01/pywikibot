@@ -48,31 +48,6 @@ class TestSiteObjectDeprecatedFunctions(DefaultSiteTestCase,
 
     cached = True
 
-    def test_siteinfo_normal_call(self):
-        """Test calling the Siteinfo without setting dump."""
-        old = self.site.siteinfo('general')
-        self.assertIn('time', old)
-        self.assertEqual(old, self.site.siteinfo['general'])
-        self.assertEqual(self.site.siteinfo('general'), old)
-        # Siteinfo always returns copies so it's not possible to directly
-        # check if they are the same dict or if they have been rerequested
-        # unless the content also changes so force that the content changes
-        self.assertNotIn('DUMMY', old)
-        self.site.siteinfo._cache['general'][0]['DUMMY'] = 42
-        old = self.site.siteinfo('general')
-        self.assertIn('DUMMY', old)
-        self.assertNotEqual(self.site.siteinfo('general', force=True), old)
-        self.assertOneDeprecationParts('Calling siteinfo',
-                                       'itself as a dictionary',
-                                       4)
-
-    def test_siteinfo_dump(self):
-        """Test calling the Siteinfo with dump=True."""
-        self.assertIn('statistics',
-                      self.site.siteinfo('statistics', dump=True))
-        self.assertOneDeprecationParts('Calling siteinfo',
-                                       'itself as a dictionary')
-
     def test_allpages_filterredir_True(self):
         """Test that filterredir set to 'only' is deprecated to True."""
         for page in self.site.allpages(filterredir='only', total=1):
@@ -94,8 +69,6 @@ class TestSiteObjectDeprecatedFunctions(DefaultSiteTestCase,
                          self.site.namespace(10))
         self.assertEqual(self.site.category_namespace(),
                          self.site.namespace(14))
-        self.assertEqual(self.site.category_namespaces(),
-                         list(self.site.namespace(14, all=True)))
 
 
 class TestSiteDryDeprecatedFunctions(DefaultDrySiteTestCase,
@@ -307,7 +280,7 @@ class TestSiteObject(DefaultSiteTestCase):
         mysite = self.get_site()
         mainpage = self.get_mainpage()
         with suppress_warnings('pywikibot.site._apisite.APISite.page_exists',
-                               DeprecationWarning):
+                               FutureWarning):
             self.assertIsInstance(mysite.page_exists(mainpage), bool)
         self.assertIsInstance(mysite.page_restrictions(mainpage), dict)
         self.assertIsInstance(mysite.page_can_be_edited(mainpage), bool)
@@ -663,7 +636,7 @@ class TestSiteGenerators(DefaultSiteTestCase):
     def test_newfiles(self):
         """Test the site.newfiles() method."""
         my_site = self.get_site()
-        with suppress_warnings(category=DeprecationWarning):
+        with suppress_warnings(category=FutureWarning):
             gen = my_site.newfiles(total=10)
         the_list = list(gen)
         self.assertLessEqual(len(the_list), 10)
@@ -1465,7 +1438,7 @@ class SearchTestCase(DefaultSiteTestCase):
                 self.skipTest('gsrsearch is diabled on site {}:\n{!r}'
                               .format(mysite, e))
 
-    @suppress_warnings("where='title' is deprecated", DeprecationWarning)
+    @suppress_warnings("where='title' is deprecated", FutureWarning)
     def test_search_where_title(self):
         """Test site.search() method with 'where' parameter set to title."""
         search_gen = self.site.search(

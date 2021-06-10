@@ -98,8 +98,7 @@ class BaseUnlinkBot(ExistingPageBot, NoRedirectPageBot, AutomaticTWSummaryBot):
 EditReplacement = EditReplacementError
 
 wrapper = ModuleDeprecationWrapper(__name__)
-wrapper._add_deprecated_attr(
+wrapper.add_deprecated_attr(
     'EditReplacement',
     replacement_name='EditReplacementError',
-    since='20210423',
-    future_warning=True)
+    since='20210423')

@@ -27,11 +27,11 @@ class Family(family.SubdomainFamily, family.WikimediaFamily):
     ]
 
     languages_by_size = [
-        'en', 'it', 'pl', 'ru', 'cs', 'fa', 'de', 'pt', 'fr', 'uk', 'es', 'et',
+        'en', 'it', 'pl', 'ru', 'cs', 'fa', 'de', 'pt', 'fr', 'uk', 'et', 'es',
         'he', 'sk', 'tr', 'bs', 'ca', 'fi', 'az', 'eo', 'sl', 'lt', 'zh', 'ar',
         'bg', 'hr', 'hy', 'el', 'su', 'nn', 'id', 'sv', 'li', 'hu', 'ko', 'nl',
         'ja', 'la', 'ta', 'sah', 'sr', 'gu', 'gl', 'ur', 'te', 'be', 'cy',
-        'no', 'ml', 'sq', 'th', 'kn', 'ro', 'vi', 'eu', 'ku', 'uz', 'hi', 'ka',
+        'no', 'ml', 'sq', 'th', 'vi', 'kn', 'ro', 'eu', 'ku', 'uz', 'hi', 'ka',
         'da', 'sa', 'is', 'br', 'mr', 'af', 'wo', 'ky',
     ]
 
@@ -70,7 +70,7 @@ class Family(family.SubdomainFamily, family.WikimediaFamily):
         """
         Return a list of historical encodings for a specific language.
 
-        @param code: site code
+        :param code: site code
         """
         # Historic compatibility
         if code == 'pl':

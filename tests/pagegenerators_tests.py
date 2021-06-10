@@ -218,7 +218,7 @@ class TestPagesFromPageidGenerator(BasetitleTestCase):
                                                             self.site)
         pageids = [page.pageid for page in gen_pages]
 
-        with suppress_warnings(PAGES_ID_GEN_MSG, category=DeprecationWarning):
+        with suppress_warnings(PAGES_ID_GEN_MSG, category=FutureWarning):
             gen = pagegenerators.PagesFromPageidGenerator(pageids, self.site)
             self.assertPageTitlesEqual(gen, self.titles)
 
@@ -407,7 +407,7 @@ class TestRepeatingGenerator(RecentChangesTestCase):
 
     def test_RepeatingGenerator(self):
         """Test RepeatingGenerator."""
-        with suppress_warnings(category=DeprecationWarning):
+        with suppress_warnings(category=FutureWarning):
             gen = pagegenerators.RepeatingGenerator(
                 self.site.recentchanges,
                 key_func=lambda x: x['revid'],
@@ -476,10 +476,10 @@ class TestYearPageGenerator(DefaultSiteTestCase):
         """Test YearPageGenerator."""
         site = self.get_site()
         # Some languages are missing (T85681)
-        if (site.lang not in date.formats['YearBC']
-                or site.lang not in date.formats['YearAD']):
+        if site.lang not in date.formats['YearBC']:
             self.skipTest(
-                'Date formats for this language are missing from date.py')
+                'Date formats for {!r} language are missing from date.py'
+                .format(site.lang))
         start = -20
         end = 2026
 
@@ -792,12 +792,12 @@ class TestItemClaimFilterPageGenerator(WikidataTestCase):
         """
         Test given claim on sample (India) page.
 
-        @param prop: the property to check
-        @param claim: the claim the property should contain
-        @param qualifiers: qualifiers to check or None
-        @param valid: true if the page should be yielded by the generator,
+        :param prop: the property to check
+        :param claim: the claim the property should contain
+        :param qualifiers: qualifiers to check or None
+        :param valid: true if the page should be yielded by the generator,
             false otherwise
-        @param negate: true to swap the filters' behavior
+        :param negate: true to swap the filters' behavior
         """
         item = pywikibot.ItemPage(self.get_repo(), 'Q668')
         gen = pagegenerators.ItemClaimFilterPageGenerator([item], prop, claim,
@@ -1643,7 +1643,7 @@ class TestUnconnectedPageGenerator(DefaultSiteTestCase):
             self.skipTest('Site is not using a Wikibase repository')
         with suppress_warnings(
                 'pywikibot.pagegenerators.UnconnectedPageGenerator is '
-                'deprecated', DeprecationWarning):
+                'deprecated', FutureWarning):
             upgen = pagegenerators.UnconnectedPageGenerator(self.site, 3)
         self.assertDictEqual(
             upgen.request._params, {
@@ -1698,7 +1698,7 @@ class TestLinksearchPageGenerator(TestCase):
 
     def test_double_opposite_protocols(self):
         """Test LinksearchPageGenerator with two opposite protocols."""
-        with suppress_warnings(LINKSEARCH_MSG, category=DeprecationWarning):
+        with suppress_warnings(LINKSEARCH_MSG, category=FutureWarning):
             with self.assertRaises(ValueError):
                 pagegenerators.LinksearchPageGenerator(
                     'http://w.wiki',
@@ -1707,7 +1707,7 @@ class TestLinksearchPageGenerator(TestCase):
 
     def test_double_same_protocols(self):
         """Test LinksearchPageGenerator with two same protocols."""
-        with suppress_warnings(LINKSEARCH_MSG, category=DeprecationWarning):
+        with suppress_warnings(LINKSEARCH_MSG, category=FutureWarning):
             gen = pagegenerators.LinksearchPageGenerator('https://w.wiki',
                                                          protocol='https',
                                                          site=self.site,

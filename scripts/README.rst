@@ -138,7 +138,7 @@ The contents of the package
     | unusedfiles.py         | Bot appends some text to all unused images and other    |
     |                        | text to the respective uploaders.                       |
     +------------------------+---------------------------------------------------------+
-    | upload.py              | upload an image to a wiki.                              |
+    | upload.py              | Upload an image to a wiki.                              |
     +------------------------+---------------------------------------------------------+
     | version.py             | Outputs Pywikibot's revision number, Python's version   |
     |                        | and OS used.                                            |
@@ -246,8 +246,8 @@ The contents of the package
     +------------------------+---------------------------------------------------------+
     | colors.py              | Utility to show pywikibot colors.                       |
     +------------------------+---------------------------------------------------------+
-    | compat2core.py         | Helper script to convert compat 1.0 scripts to the core |
-    |                        | 3.0 framework. Also works for newer Pywikibot releases. |
+    | update_script.py       | Helper script to update scripts and replace deprecated  |
+    |                        | code parts.                                             |
     +------------------------+---------------------------------------------------------+
     | make_i18n_dict.py      | Generate an i18n file from a given script.              |
     +------------------------+---------------------------------------------------------+

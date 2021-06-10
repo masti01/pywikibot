@@ -11,7 +11,6 @@ from typing import Optional
 import pywikibot
 from pywikibot.backports import List
 from pywikibot.exceptions import Error, HiddenKeyError
-from pywikibot.tools import deprecated
 
 
 _logger = 'wiki'
@@ -95,29 +94,19 @@ class LogEntry(UserDict):
         """
         Additional data for some log entry types.
 
-        @rtype: dict or None
+        :rtype: dict or None
         """
         with suppress(KeyError):
             return self['params']
 
         return self[self._expected_type]
 
-    @deprecated('page()', since='20150617', future_warning=True)
-    def title(self):
-        """
-        DEPRECATED: Alias for page().
-
-        This is going to be replaced by just returning the title as a string
-        instead of a Page instance.
-        """
-        return self.page()
-
     def page(self):
         """
         Page on which action was performed.
 
-        @return: page on action was performed
-        @rtype: pywikibot.Page
+        :return: page on action was performed
+        :rtype: pywikibot.Page
         """
         if not hasattr(self, '_page'):
             self._page = pywikibot.Page(self.site, self['title'])
@@ -146,8 +135,8 @@ class UserTargetLogEntry(LogEntry):
         This returns a User object instead of the Page object returned by the
         superclass method.
 
-        @return: target user
-        @rtype: pywikibot.User
+        :return: target user
+        :rtype: pywikibot.User
         """
         if not hasattr(self, '_page'):
             self._page = pywikibot.User(self.site, self['title'])
@@ -179,10 +168,10 @@ class BlockEntry(LogEntry):
         """
         Return the blocked account or IP.
 
-        @return: the Page object of username or IP if this block action
+        :return: the Page object of username or IP if this block action
             targets a username or IP, or the blockid if this log reflects
             the removal of an autoblock
-        @rtype: pywikibot.Page or int
+        :rtype: pywikibot.Page or int
         """
         # TODO what for IP ranges ?
         if self.isAutoblockRemoval:
@@ -196,7 +185,7 @@ class BlockEntry(LogEntry):
 
         It raises an Error if the entry is an unblocking log entry.
 
-        @return: list of flags strings
+        :return: list of flags strings
         """
         if self.action() == 'unblock':
             return []
@@ -214,7 +203,7 @@ class BlockEntry(LogEntry):
         """
         Return a datetime.timedelta representing the block duration.
 
-        @return: datetime.timedelta, or None if block is indefinite.
+        :return: datetime.timedelta, or None if block is indefinite.
         """
         if not hasattr(self, '_duration'):
             if self.expiry() is None:
@@ -228,7 +217,7 @@ class BlockEntry(LogEntry):
         """
         Return a Timestamp representing the block expiry date.
 
-        @rtype: pywikibot.Timestamp or None
+        :rtype: pywikibot.Timestamp or None
         """
         if not hasattr(self, '_expiry'):
             details = self._params.get('expiry')
@@ -274,7 +263,7 @@ class UploadEntry(LogEntry):
         """
         Return FilePage on which action was performed.
 
-        @rtype: pywikibot.FilePage
+        :rtype: pywikibot.FilePage
         """
         if not hasattr(self, '_page'):
             self._page = pywikibot.FilePage(self.site, self['title'])
@@ -308,7 +297,7 @@ class MoveEntry(LogEntry):
         """
         Return target page object.
 
-        @rtype: pywikibot.Page
+        :rtype: pywikibot.Page
         """
         if not hasattr(self, '_target_page'):
             self._target_page = pywikibot.Page(self.site, self.target_title)
@@ -368,12 +357,12 @@ class LogEntryFactory:
         """
         Initializer.
 
-        @param site: The site on which the log entries are created.
-        @type site: BaseSite
-        @param logtype: The log type of the log entries, if known in advance.
+        :param site: The site on which the log entries are created.
+        :type site: BaseSite
+        :param logtype: The log type of the log entries, if known in advance.
                         If None, the Factory will fetch the log entry from
                         the data to create each object.
-        @type logtype: (letype) str : move/block/patrol/etc...
+        :type logtype: (letype) str : move/block/patrol/etc...
         """
         self._site = site
         if logtype is None:
@@ -388,10 +377,10 @@ class LogEntryFactory:
         """
         Instantiate the LogEntry object representing logdata.
 
-        @param logdata: <item> returned by the api
-        @type logdata: dict
+        :param logdata: <item> returned by the api
+        :type logdata: dict
 
-        @return: LogEntry object representing logdata
+        :return: LogEntry object representing logdata
         """
         return self._creator(logdata)
 
@@ -399,9 +388,9 @@ class LogEntryFactory:
         """
         Return the class corresponding to the @logtype string parameter.
 
-        @return: specified subclass of LogEntry
-        @rtype: LogEntry
-        @raise KeyError: logtype is not valid
+        :return: specified subclass of LogEntry
+        :rtype: LogEntry
+        :raise KeyError: logtype is not valid
         """
         if logtype not in self._site.logtypes:
             raise KeyError('{} is not a valid logtype'.format(logtype))
@@ -413,9 +402,9 @@ class LogEntryFactory:
         """
         Return the class corresponding to the @logtype string parameter.
 
-        @return: specified subclass of LogEntry
-        @rtype: LogEntry
-        @note: this class method cannot verify whether the given logtype
+        :return: specified subclass of LogEntry
+        :rtype: LogEntry
+        :note: this class method cannot verify whether the given logtype
             already exits for a given site; to verify use Site.logtypes
             or use the get_valid_entry_class instance method instead.
         """
@@ -435,8 +424,8 @@ class LogEntryFactory:
         """
         Check for logtype from data, and creates the correct LogEntry.
 
-        @param logdata: log entry data
-        @rtype: LogEntry
+        :param logdata: log entry data
+        :rtype: LogEntry
         """
         try:
             logtype = logdata['type']
