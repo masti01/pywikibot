@@ -1580,7 +1580,7 @@ def _yield_titles(f: Union[codecs.StreamReaderWriter, io.StringIO],
 
 
 def TextIOPageGenerator(source: Optional[str] = None,
-                        site: Optional[pywikibot.Site] = None):
+                        site: Optional[pywikibot.site.BaseSite] = None):
     """Iterate pages from a list in a text file or on a webpage.
 
     The text source must contain page links between double-square-brackets or,
@@ -1598,7 +1598,7 @@ def TextIOPageGenerator(source: Optional[str] = None,
     if site is None:
         site = pywikibot.Site()
     # If source cannot be parsed as an HTTP URL, treat as local file
-    if not urlparse(source).scheme:
+    if not urlparse(source).netloc:
         with codecs.open(source, 'r', config.textfile_encoding) as f:
             yield from _yield_titles(f, site)
     # Else, fetch page (page should return text in same format as that expected
