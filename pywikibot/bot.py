@@ -176,13 +176,8 @@ from pywikibot.tools.formatter import color_format
 # Note: all output goes through python std library "logging" module
 _logger = 'bot'
 
-# User interface initialization
-# search for user interface module in the 'userinterfaces' subdirectory
-uiModule = __import__('pywikibot.userinterfaces.{}_interface'
-                      .format(config.userinterface), fromlist=['UI'])
-ui = uiModule.UI()
-atexit.register(ui.flush)
-pywikibot.argvu = ui.argvu()
+ui = None
+
 
 _GLOBAL_HELP = """
 GLOBAL OPTIONS
@@ -256,6 +251,24 @@ GLOBAL OPTIONS
 For global options use -help:global or run pwb.py -help
 
 """
+
+
+def set_interface(module_name):
+    """Configures any bots to use the given interface module."""
+    global ui
+
+    # User interface initialization
+    # search for user interface module in the 'userinterfaces' subdirectory
+    ui_module = __import__('pywikibot.userinterfaces.{}_interface'
+                           .format(module_name), fromlist=['UI'])
+    ui = ui_module.UI()
+    atexit.register(ui.flush)
+    pywikibot.argvu = ui.argvu()
+
+    # re-initialize if we were already initialized with another UI
+
+    if _handlers_initialized:
+        init_handlers()
 
 
 # Initialize the handlers and formatters for the logging system.
@@ -1192,7 +1205,9 @@ class BaseBot(OptionHandler):
         'always': False,  # By default ask for confirmation when putting a page
     }
 
-    # update_options can be used to update available_options
+    # update_options can be used to update available_options;
+    # do not use it if the bot class is to be derived but use
+    # self.available_options.update(<dict>) initializer in such case
     update_options = {}
 
     _current_page = None
@@ -2244,3 +2259,6 @@ class WikidataBot(Bot, ExistingPageBot):
         raise NotImplementedError('Method {}.treat_page_and_item() not '
                                   'implemented.'
                                   .format(self.__class__.__name__))
+
+
+set_interface(config.userinterface)
