@@ -130,6 +130,7 @@ from pywikibot.bot_choice import (
     UnhandledAnswer,
 )
 from pywikibot.exceptions import (
+    ArgumentDeprecationWarning,
     EditConflictError,
     Error,
     LockedPageError,
@@ -167,9 +168,11 @@ from pywikibot.tools import (
     deprecated,
     deprecated_args,
     issue_deprecation_warning,
+    redirect_func,
+    remove_last_args,
     suppress_warnings,
 )
-from pywikibot.tools._logging import LoggingFormatter, RotatingFileHandler
+from pywikibot.tools._logging import LoggingFormatter
 from pywikibot.tools.formatter import color_format
 
 
@@ -291,7 +294,15 @@ def set_interface(module_name):
 _handlers_initialized = False
 
 
-def init_handlers(strm=None):
+def handler_namer(name: str) -> str:
+    """Modify the filename of a log file when rotating."""
+    path, qualifier = name.rsplit('.', 1)
+    root, ext = os.path.splitext(path)
+    return '{}.{}{}'.format(root, qualifier, ext)
+
+
+@remove_last_args(['strm'])
+def init_handlers():
     """Initialize logging system for terminal-based bots.
 
     This function must be called before using pywikibot.output(); and must
@@ -320,12 +331,9 @@ def init_handlers(strm=None):
     Accordingly, do **not** use print statements in bot code; instead,
     use pywikibot.output function.
 
-    *New in version 6.2:* different logfiles are uses if multiple
-    processes of the same script are are running.
-
-    :param strm: Output stream. If None, re-uses the last stream if one
-        was defined, otherwise uses sys.stderr
-
+    ..versionchanged:: 6.2
+      Different logfiles are used if multiple processes of the same
+      script are running.
     """
     global _handlers_initialized
 
@@ -366,14 +374,16 @@ def init_handlers(strm=None):
 
     # if user has enabled file logging, configure file handler
     if module_name in config.log or '*' in config.log:
-        if pywikibot.Site.__doc__ == 'TEST':  # set by aspects.DisableSiteMixin
-            pid = ''
-        else:
-            # get PID
-            throttle = pywikibot.Site().throttle  # initialize a Throttle obj
-            pid = throttle.get_pid(module_name)  # get the global PID if needed
-            pid = str(pid) + '-' if pid > 1 else ''
-
+        pid = ''
+        if pywikibot.Site.__doc__ != 'TEST':  # set by aspects.DisableSiteMixin
+            try:  # T286848
+                site = pywikibot.Site()
+            except ValueError:
+                pass
+            else:  # get PID
+                throttle = site.throttle  # initialize a Throttle obj
+                pid = throttle.get_pid(module_name)  # get the global PID
+                pid = str(pid) + '-' if pid > 1 else ''
         if config.logfilename:
             # keep config.logfilename unchanged
             logfile = config.datafilepath('logs', config.logfilename)
@@ -382,10 +392,23 @@ def init_handlers(strm=None):
             logfile = config.datafilepath('logs', '{}-{}bot.log'
                                           .format(module_name, pid))
 
-        file_handler = RotatingFileHandler(filename=logfile,
-                                           maxBytes=1024 * config.logfilesize,
-                                           backupCount=config.logfilecount,
-                                           encoding='utf-8')
+        # give up infinite rotating file handler with logfilecount of -1;
+        # set it to 999 and use the standard implementation
+        max_count = config.logfilecount
+        if max_count == -1:
+            max_count = 999
+            issue_deprecation_warning('config.logfilecount with value -1',
+                                      'any positive number',
+                                      warning_class=ArgumentDeprecationWarning,
+                                      since='6.5.0')
+
+        file_handler = logging.handlers.RotatingFileHandler(
+            filename=logfile,
+            maxBytes=config.logfilesize << 10,
+            backupCount=max_count,
+            encoding='utf-8'
+        )
+        file_handler.namer = handler_namer
 
         file_handler.setLevel(DEBUG)
         form = LoggingFormatter(
@@ -520,8 +543,8 @@ def input_choice(question: str, answers, default: Optional[str] = None,
     :param question: The question asked without trailing spaces.
     :param answers: The valid answers each containing a full length answer and
         a shortcut. Each value must be unique.
-    :type answers: iterable containing a sequence of length two or instances of
-        ChoiceException
+    :type answers: iterable containing a sequence of length two or
+        instances of :py:class:`pywikibot.bot.Option`
     :param default: The result if no answer was entered. It must not be in the
         valid answers and can be disabled by setting it to None. If it should
         be linked with the valid answers it must be its shortcut.
@@ -2261,3 +2284,13 @@ class WikidataBot(Bot, ExistingPageBot):
 
 
 set_interface(config.userinterface)
+
+# Deprecate RotatingFileHandler
+RotatingFileHandler = redirect_func(logging.handlers.RotatingFileHandler,
+                                    since='6.5.0')
+
+# NOTE: (T286348)
+# Do not use ModuleDeprecationWrapper with this module.
+# pywikibot.bot.ui would be wrapped through the ModuleDeprecationWrapper
+# and a cannot be changed later. Use another depecation method instead
+# (until T286348 has been solved somehow different).
